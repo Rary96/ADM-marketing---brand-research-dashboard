@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LALIEN — Brand Strategy Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  body { background: #0a0a0b; font-family: 'Helvetica Neue', Arial, sans-serif; }
+  .glass { background: rgba(20,20,22,0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+  .chrome-border { border: 1px solid rgba(255,255,255,0.12); }
+  .accent { color: #ff3b30; }
+  .accent-bg { background: #ff3b30; }
+  .tab-active { border-bottom: 2px solid #ff3b30; color: #fff; }
+  .tab-inactive { border-bottom: 2px solid transparent; color: #8a8a8e; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-thumb { background: #3a3a3c; border-radius: 3px; }
+  .fade-in { animation: fadeIn .4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px);} to { opacity:1; transform: translateY(0);} }
+</style>
+</head>
+<body class="text-gray-200 min-h-screen">
+
+<!-- LOGIN VIEW -->
+<div id="loginView" class="min-h-screen flex items-center justify-center px-4">
+  <div class="glass rounded-2xl p-10 w-full max-w-sm fade-in">
+    <div class="text-center mb-8">
+      <div class="text-3xl font-light tracking-[0.3em] text-white">LALIEN</div>
+      <div class="text-xs tracking-[0.2em] text-gray-500 mt-2">SET A NEW STANDARD. YOURS.</div>
+    </div>
+    <form id="loginForm" class="space-y-4">
+      <div>
+        <label class="block text-xs text-gray-500 mb-1 tracking-wide">EMAIL</label>
+        <input type="email" id="loginEmail" required class="w-full bg-black/40 chrome-border rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500/50" placeholder="nome@lalien.com">
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1 tracking-wide">PASSWORD</label>
+        <input type="password" id="loginPassword" required class="w-full bg-black/40 chrome-border rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500/50" placeholder="••••••••">
+      </div>
+      <div id="loginError" class="text-xs text-red-400 hidden"></div>
+      <button type="submit" class="w-full accent-bg text-white text-sm tracking-widest py-2.5 rounded-lg hover:opacity-90 transition font-medium">ACCEDI</button>
+    </form>
+    <div class="text-center text-[10px] text-gray-600 mt-6 tracking-wide">LALIEN TRIBE — ACCESSO RISERVATO</div>
+  </div>
+</div>
+
+<!-- DASHBOARD VIEW -->
+<div id="dashboardView" class="hidden min-h-screen">
+  <nav class="chrome-border border-b bg-black/60 backdrop-blur sticky top-0 z-20">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="text-xl font-light tracking-[0.25em] text-white">LALIEN</div>
+        <div class="text-[10px] text-gray-500 tracking-widest hidden sm:block">BRAND STRATEGY DASHBOARD</div>
+      </div>
+      <div class="flex items-center gap-4">
+        <span id="clientBadge" class="text-xs text-gray-500 hidden sm:inline">cliente: —</span>
+        <button id="logoutBtn" class="text-xs text-gray-400 hover:text-red-400 tracking-wide border chrome-border rounded-lg px-3 py-1.5 transition">LOGOUT</button>
+      </div>
+    </div>
+    <div class="max-w-7xl mx-auto px-6 flex gap-6 overflow-x-auto text-sm">
+      <button data-tab="overview" class="tab-btn tab-active px-1 py-3 whitespace-nowrap">Overview</button>
+      <button data-tab="identity" class="tab-btn tab-inactive px-1 py-3 whitespace-nowrap">Brand Identity</button>
+      <button data-tab="competitor" class="tab-btn tab-inactive px-1 py-3 whitespace-nowrap">Competitor</button>
+      <button data-tab="seo" class="tab-btn tab-inactive px-1 py-3 whitespace-nowrap">SEO</button>
+      <button data-tab="swot" class="tab-btn tab-inactive px-1 py-3 whitespace-nowrap">SWOT</button>
+      <button data-tab="roadmap" class="tab-btn tab-inactive px-1 py-3 whitespace-nowrap">Roadmap</button>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <div id="loadingState" class="text-center py-20 text-gray-500 text-sm">Caricamento dati...</div>
+    <div id="tabContent" class="hidden fade-in"></div>
+  </main>
+</div>
+
+<script>
+const SUPABASE_URL = "https://bydkcpdjebpgkmqutptu.supabase.co";
+const SUPABASE_KEY = "sb_publishable_VasX4SkGnLJFgMC_80TfmQ_0tYurGBL";
+const STORAGE_BUCKET = "data";
+const CLIENT_FALLBACK = "lalien2026";
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ---- FALLBACK DATA (visibile subito in anteprima, prima del collegamento reale a Supabase) ----
+const FALLBACK_ROWS = [
+["METRICHE_GENERALI","Mercato","Dimensione mercato luxury jewelry 2024","48.74 B USD","Fonte: Globenewswire Q4 2025"],
+["METRICHE_GENERALI","Mercato","Dimensione mercato luxury jewelry stimata 2033","99.15 B USD","CAGR trainato da personalizzazione e digitalizzazione"],
+["METRICHE_GENERALI","Mercato","Trend dominante 2025","Quiet Luxury","Design minimal senza logo esplicito"],
+["METRICHE_GENERALI","Mercato","Trend emergente Fall 2026","Statement/Maximalist Jewelry","Ritorno al gioiello dichiarativo dopo il picco quiet luxury"],
+["METRICHE_GENERALI","Brand","Nome Brand","LALIEN","Traslitterazione nepalese: लालियन (Lā-li-yan)"],
+["METRICHE_GENERALI","Brand","Segmento","High Jewelry / Luxury","Scenario B - lancio da zero"],
+["METRICHE_GENERALI","Brand","Tagline","Set a new standard. Yours.","Manifesto di posizionamento"],
+["METRICHE_GENERALI","Brand","Concept identitario","Proud to be ALIEN","Reframing da stranger a appartenenza"],
+["METRICHE_GENERALI","Palette","Colore accento","Rosso Light","Elemento di rottura visiva"],
+["METRICHE_GENERALI","Palette","Colori base","Nero-Grigio-Bianco-Cromato","Estetica silent/elite luxury"],
+["COMPETITOR","Maison Affermata","Cartier","Heritage/Prezzo molto alto","Comunicazione istituzionale, digital capillare ma controllata"],
+["COMPETITOR","Maison Affermata","Bulgari","Heritage/Prezzo molto alto","Forte su editorial e celebrity endorsement"],
+["COMPETITOR","Maison Affermata","Van Cleef & Arpels","Heritage/Prezzo molto alto","462K follower TikTok - focus digital intimacy e community"],
+["COMPETITOR","Maison Affermata","Tiffany & Co","Heritage/Prezzo alto","Forte brand recognition storica"],
+["COMPETITOR","Maison Affermata","Graff","Heritage/Prezzo altissimo","Posizionamento su diamanti rari e unicità"],
+["COMPETITOR","Brand Emergente DTC","Mejuri","Accessible luxury/self-purchase","Target donne che comprano per sé stesse"],
+["COMPETITOR","Brand Emergente DTC","Clarté New York","Accessible luxury/craftsmanship","Fondato da jeweler di quarta generazione"],
+["COMPETITOR","Brand Emergente DTC","Emerging Fine Jewelry Designer Incubator","Piattaforma incubatore","Supporto a designer emergenti con business già solido"],
+["SWOT","Strengths","Narrativa identitaria distintiva","Alto impatto","Concept alieno/dualità unico nel settore"],
+["SWOT","Strengths","Community-first approach","Alto impatto","LALIEN Tribe come clan di appartenenza"],
+["SWOT","Strengths","Estetica cromatica riconoscibile","Medio impatto","Rosso light + nero/grigio/bianco/cromato"],
+["SWOT","Weaknesses","Brand awareness nulla al lancio","Alto rischio","Nessun heritage pregresso"],
+["SWOT","Weaknesses","Fiducia su acquisti alto valore","Alto rischio","Da costruire senza storia di marca"],
+["SWOT","Opportunities","Gap di posizionamento","Alto potenziale","Spazio libero tra maison istituzionali e DTC accessibili"],
+["SWOT","Opportunities","Crescita mercato luxury jewelry","Alto potenziale","+103% stimato 2024-2033"],
+["SWOT","Opportunities","Ritorno statement jewelry","Medio potenziale","Coerente con estetica dichiarativa del brand"],
+["SWOT","Threats","Saturazione mercato DTC jewelry","Medio rischio","Alta competizione digitale"],
+["SWOT","Threats","Diluizione esclusività","Alto rischio","Se community cresce prima della solidità prodotto"],
+["SWOT","Threats","Volatilità trend estetici","Medio rischio","Oscillazione quiet vs statement jewelry"],
+["SEO_KEYWORD","Primaria","luxury jewelry brand","Alto volume","Categoria core"],
+["SEO_KEYWORD","Primaria","quiet luxury jewelry","Alto volume","Trend 2025-2026"],
+["SEO_KEYWORD","Primaria","statement jewelry 2026","Crescente","Trend emergente Fall 2026"],
+["SEO_KEYWORD","Secondaria","elite luxury jewelry","Medio volume","Posizionamento distintivo LALIEN"],
+["SEO_KEYWORD","Secondaria","independent jewelry designer","Medio volume","Categoria emergente DTC"],
+["SEO_KEYWORD","Secondaria","custom fine jewelry","Medio volume","Personalizzazione"],
+["SEO_KEYWORD","Long-tail","luxury jewelry self purchase","Crescente","Target self-gifting"],
+["SEO_KEYWORD","Long-tail","sustainable luxury jewelry lab grown","Crescente","Trend tracciabilità materiali"],
+["ROADMAP","Fase 1","Fondamenta (0-2 mesi)","In pianificazione","Logo/identita visiva + capsule iniziale + setup e-commerce Supabase"],
+["ROADMAP","Fase 2","Soft launch community (2-4 mesi)","In pianificazione","3 pinned post + contenuti processo creativo + prime 100-500 Tribe"],
+["ROADMAP","Fase 3","Digital-first launch (4-6 mesi)","In pianificazione","Apertura e-commerce pubblico + PR editoriale + drop limitati"],
+["ROADMAP","Fase 4","Scaling controllato (6-12 mesi)","In pianificazione","Linea eyewear + partnership + valutazione showroom fisico"],
+["CONTENT_PILLAR","Pilastro 1","Processo creativo","Alta frequenza","Idea - Processo - CAD - Prodotto"],
+["CONTENT_PILLAR","Pilastro 2","Iconic storytelling","Media frequenza","Editoriale in inglese, tono dichiarativo"],
+["CONTENT_PILLAR","Pilastro 3","Reel veloci disegno","Alta frequenza","Schizzi e autenticita del processo"],
+["CONTENT_PILLAR","Pilastro 4","Pinned posts","Statico","Manifesto origin story - Prodotto hero - Community tribe"]
+];
+
+let DATA = FALLBACK_ROWS.map(r => ({section:r[0],category:r[1],label:r[2],value:r[3],detail:r[4]}));
+
+function bySection(s){ return DATA.filter(r => r.section === s); }
+
+// ---------------- RENDER FUNCTIONS ----------------
+function renderOverview(){
+  const rows = bySection("METRICHE_GENERALI");
+  const cards = rows.map(r => `
+    <div class="glass rounded-xl p-5">
+      <div class="text-[10px] tracking-widest text-gray-500 mb-1">${r.category.toUpperCase()}</div>
+      <div class="text-white text-lg font-light mb-1">${r.label}</div>
+      <div class="accent text-sm mb-2">${r.value}</div>
+      <div class="text-xs text-gray-500">${r.detail}</div>
+    </div>`).join('');
+  return `
+    <div class="mb-8">
+      <h2 class="text-2xl font-light text-white mb-1">Overview</h2>
+      <p class="text-sm text-gray-500">Metriche generali di mercato e identità core del brand LALIEN.</p>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">${cards}</div>`;
+}
+
+function renderIdentity(){
+  const pillars = bySection("CONTENT_PILLAR");
+  const pillarCards = pillars.map(p => `
+    <div class="glass rounded-xl p-5">
+      <div class="text-[10px] tracking-widest accent mb-1">${p.category.toUpperCase()}</div>
+      <div class="text-white font-light mb-2">${p.label}</div>
+      <div class="text-xs text-gray-500">${p.detail} · <span class="text-gray-400">${p.value}</span></div>
+    </div>`).join('');
+  return `
+    <div class="mb-8">
+      <h2 class="text-2xl font-light text-white mb-1">Brand Identity</h2>
+      <p class="text-sm text-gray-500">Vision, storytelling e pilastri di contenuto.</p>
+    </div>
+    <div class="glass rounded-xl p-6 mb-6">
+      <div class="text-[10px] tracking-widest text-gray-500 mb-2">MANIFESTO</div>
+      <div class="text-2xl text-white font-light leading-relaxed">"Set a new standard.<br><span class="accent">Yours.</span>"</div>
+      <p class="text-sm text-gray-400 mt-4 max-w-2xl">LALIEN trasforma l'idea di "stranger" in appartenenza — from bad quality to top quality, from stranger to you. Un'identità aliena e duale che diventa codice di riconoscimento per la LALIEN Tribe.</p>
+    </div>
+    <h3 class="text-sm tracking-widest text-gray-500 mb-3">CONTENT PILLARS</h3>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">${pillarCards}</div>`;
+}
+
+function renderCompetitor(){
+  const rows = bySection("COMPETITOR");
+  const groups = {};
+  rows.forEach(r => { (groups[r.category] = groups[r.category]||[]).push(r); });
+  let html = `<div class="mb-8"><h2 class="text-2xl font-light text-white mb-1">Competitor Analysis</h2><p class="text-sm text-gray-500">Maison affermate vs brand luxury emergenti.</p></div>`;
+  for(const [cat, items] of Object.entries(groups)){
+    html += `<h3 class="text-sm tracking-widest text-gray-500 mb-3 mt-6">${cat.toUpperCase()}</h3><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">`;
+    html += items.map(i => `
+      <div class="glass rounded-xl p-5">
+        <div class="text-white font-light mb-1">${i.label}</div>
+        <div class="accent text-xs mb-2">${i.value}</div>
+        <div class="text-xs text-gray-500">${i.detail}</div>
+      </div>`).join('');
+    html += `</div>`;
+  }
+  return html;
+}
+
+function renderSeo(){
+  const rows = bySection("SEO_KEYWORD");
+  const groups = {};
+  rows.forEach(r => { (groups[r.category] = groups[r.category]||[]).push(r); });
+  let html = `<div class="mb-8"><h2 class="text-2xl font-light text-white mb-1">SEO & Keyword</h2><p class="text-sm text-gray-500">Opportunità di posizionamento organico per il lancio.</p></div>`;
+  for(const [cat, items] of Object.entries(groups)){
+    html += `<h3 class="text-sm tracking-widest text-gray-500 mb-3 mt-6">${cat.toUpperCase()}</h3><div class="space-y-2">`;
+    html += items.map(i => `
+      <div class="glass rounded-lg px-5 py-3 flex items-center justify-between">
+        <div class="text-white text-sm">${i.label}</div>
+        <div class="flex items-center gap-4">
+          <span class="text-xs text-gray-500">${i.detail}</span>
+          <span class="text-xs accent border border-red-500/30 rounded-full px-2 py-0.5">${i.value}</span>
+        </div>
+      </div>`).join('');
+    html += `</div>`;
+  }
+  return html;
+}
+
+function renderSwot(){
+  const rows = bySection("SWOT");
+  const map = {Strengths:{title:"Strengths",color:"border-green-500/30"},Weaknesses:{title:"Weaknesses",color:"border-yellow-500/30"},Opportunities:{title:"Opportunities",color:"border-blue-500/30"},Threats:{title:"Threats",color:"border-red-500/30"}};
+  let html = `<div class="mb-8"><h2 class="text-2xl font-light text-white mb-1">SWOT Analysis</h2><p class="text-sm text-gray-500">Analisi prospettica per il lancio del brand.</p></div>`;
+  html += `<div class="grid grid-cols-1 md:grid-cols-2 gap-5">`;
+  for(const [cat, cfg] of Object.entries(map)){
+    const items = rows.filter(r => r.category === cat);
+    html += `<div class="glass rounded-xl p-5 border-t-2 ${cfg.color}">
+      <div class="text-sm tracking-widest text-gray-400 mb-3">${cfg.title.toUpperCase()}</div>
+      <div class="space-y-3">`;
+    html += items.map(i => `
+      <div>
+        <div class="text-white text-sm">${i.label}</div>
+        <div class="text-xs text-gray-500">${i.detail} · <span class="text-gray-400">${i.value}</span></div>
+      </div>`).join('');
+    html += `</div></div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function renderRoadmap(){
+  const rows = bySection("ROADMAP");
+  let html = `<div class="mb-8"><h2 class="text-2xl font-light text-white mb-1">Roadmap Go-To-Market</h2><p class="text-sm text-gray-500">Piano di lancio in 4 fasi.</p></div>`;
+  html += `<div class="space-y-4">`;
+  rows.forEach((r,idx) => {
+    html += `
+      <div class="glass rounded-xl p-5 flex gap-5 items-start">
+        <div class="text-3xl font-thin accent w-14 shrink-0">${String(idx+1).padStart(2,'0')}</div>
+        <div>
+          <div class="text-white font-light">${r.label}</div>
+          <div class="text-xs text-gray-500 mt-1">${r.category} · <span class="text-gray-400">${r.value}</span></div>
+          <div class="text-sm text-gray-400 mt-2">${r.detail}</div>
+        </div>
+      </div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+const RENDERERS = { overview: renderOverview, identity: renderIdentity, competitor: renderCompetitor, seo: renderSeo, swot: renderSwot, roadmap: renderRoadmap };
+
+function showTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    if(b.dataset.tab === tab){ b.classList.remove('tab-inactive'); b.classList.add('tab-active'); }
+    else { b.classList.remove('tab-active'); b.classList.add('tab-inactive'); }
+  });
+  const content = document.getElementById('tabContent');
+  content.innerHTML = RENDERERS[tab]();
+  content.classList.remove('hidden');
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => showTab(btn.dataset.tab));
+});
+
+function initDashboard(){
+  document.getElementById('loadingState').classList.add('hidden');
+  showTab('overview');
+}
+
+// ---------------- AUTH & DATA FLOW ----------------
+async function loadClientData(userId){
+  let clientFolder = CLIENT_FALLBACK;
+  try {
+    const { data: profile, error } = await supabase.from('profiles').select('client').eq('id', userId).single();
+    if(!error && profile && profile.client) clientFolder = profile.client;
+  } catch(e){ /* fallback resta invariato */ }
+
+  document.getElementById('clientBadge').textContent = 'cliente: ' + clientFolder;
+  document.getElementById('clientBadge').classList.remove('hidden');
+
+  try {
+    const { data: fileData, error: dlError } = await supabase.storage.from(STORAGE_BUCKET).download(`data/${clientFolder}/data.csv`);
+    if(dlError || !fileData) throw dlError || new Error('CSV non trovato');
+    const text = await fileData.text();
+    const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+    if(parsed.data && parsed.data.length){
+      DATA = parsed.data.map(r => ({section:r.section, category:r.category, label:r.label, value:r.value, detail:r.detail}));
+    }
+  } catch(e){
+    console.warn('Uso dati di fallback locali:', e);
+  }
+  initDashboard();
+}
+
+function showDashboard(session){
+  document.getElementById('loginView').classList.add('hidden');
+  document.getElementById('dashboardView').classList.remove('hidden');
+  loadClientData(session.user.id);
+}
+
+function showLogin(){
+  document.getElementById('dashboardView').classList.add('hidden');
+  document.getElementById('loginView').classList.remove('hidden');
+}
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.classList.add('hidden');
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if(error){
+    errEl.textContent = 'Accesso non riuscito: ' + error.message;
+    errEl.classList.remove('hidden');
+    return;
+  }
+  showDashboard(data.session);
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await supabase.auth.signOut();
+  showLogin();
+});
+
+// Sessione persistente al reload
+(async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if(session){ showDashboard(session); } else { showLogin(); }
+})();
+
+supabase.auth.onAuthStateChange((event, session) => {
+  if(event === 'SIGNED_OUT'){ showLogin(); }
+});
+</script>
+</body>
+</html>
