@@ -82,7 +82,7 @@ const SUPABASE_KEY = "sb_publishable_VasX4SkGnLJFgMC_80TfmQ_0tYurGBL";
 const STORAGE_BUCKET = "data";
 const CLIENT_FALLBACK = "lalien2026";
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ---- FALLBACK DATA (visibile subito in anteprima, prima del collegamento reale a Supabase) ----
 const FALLBACK_ROWS = [
@@ -280,7 +280,7 @@ function initDashboard(){
 async function loadClientData(userId){
   let clientFolder = CLIENT_FALLBACK;
   try {
-    const { data: profile, error } = await supabase.from('profiles').select('client').eq('id', userId).single();
+    const { data: profile, error } = await sb.from('profiles').select('client').eq('id', userId).single();
     if(!error && profile && profile.client) clientFolder = profile.client;
   } catch(e){ /* fallback resta invariato */ }
 
@@ -288,7 +288,7 @@ async function loadClientData(userId){
   document.getElementById('clientBadge').classList.remove('hidden');
 
   try {
-    const { data: fileData, error: dlError } = await supabase.storage.from(STORAGE_BUCKET).download(`data/${clientFolder}/data.csv`);
+    const { data: fileData, error: dlError } = await sb.storage.from(STORAGE_BUCKET).download(`data/${clientFolder}/data.csv`);
     if(dlError || !fileData) throw dlError || new Error('CSV non trovato');
     const text = await fileData.text();
     const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
@@ -318,7 +318,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   const password = document.getElementById('loginPassword').value;
   const errEl = document.getElementById('loginError');
   errEl.classList.add('hidden');
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if(error){
     errEl.textContent = 'Accesso non riuscito: ' + error.message;
     errEl.classList.remove('hidden');
@@ -328,17 +328,17 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 });
 
 document.getElementById('logoutBtn').addEventListener('click', async () => {
-  await supabase.auth.signOut();
+  await sb.auth.signOut();
   showLogin();
 });
 
 // Sessione persistente al reload
 (async () => {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await sb.auth.getSession();
   if(session){ showDashboard(session); } else { showLogin(); }
 })();
 
-supabase.auth.onAuthStateChange((event, session) => {
+sb.auth.onAuthStateChange((event, session) => {
   if(event === 'SIGNED_OUT'){ showLogin(); }
 });
 </script>
