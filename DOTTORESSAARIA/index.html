@@ -68,6 +68,7 @@
     <nav class="max-w-7xl mx-auto px-4 sm:px-6 flex gap-2 overflow-x-auto pb-2">
       <button data-tab="overview" class="tab-btn active whitespace-nowrap text-sm font-medium px-4 py-1.5 rounded-full border border-slate-200 transition">Overview</button>
       <button data-tab="brand" class="tab-btn whitespace-nowrap text-sm font-medium px-4 py-1.5 rounded-full border border-slate-200 transition">Brand &amp; Competitor</button>
+      <button data-tab="metodo" class="tab-btn whitespace-nowrap text-sm font-medium px-4 py-1.5 rounded-full border border-slate-200 transition">Metodo &amp; Identità</button>
       <button data-tab="seo" class="tab-btn whitespace-nowrap text-sm font-medium px-4 py-1.5 rounded-full border border-slate-200 transition">SEO &amp; Social</button>
       <button data-tab="swot" class="tab-btn whitespace-nowrap text-sm font-medium px-4 py-1.5 rounded-full border border-slate-200 transition">SWOT</button>
       <button data-tab="roadmap" class="tab-btn whitespace-nowrap text-sm font-medium px-4 py-1.5 rounded-full border border-slate-200 transition">Roadmap</button>
@@ -89,28 +90,33 @@
         <div class="bg-white rounded-2xl border border-slate-200 p-6">
           <h2 class="font-semibold text-slate-800 mb-2 flex items-center gap-2"><i data-lucide="target" class="w-4 h-4 text-indigo-600"></i> Posizionamento in una frase</h2>
           <p class="text-sm text-slate-600 leading-relaxed">
-            Dottoressa Aria è l'unico brand personale italiano nel settore DSA/logopedia che unisce servizio clinico multidisciplinare,
-            community social ampia e infoprodotti editoriali (libro, podcast, corsi) sotto un'unica identità guidata dalla founder Arianna Mocellin —
-            un vantaggio competitivo oggi difendibile ma da mettere in sicurezza con un'architettura di brand pronta per la crescita.
+            Dott.ssa Aria è logopedista e psicologa, specializzata in DSA (dislessia, disortografia, discalculia) e ADHD, con un metodo
+            protocollato scientificamente in cui il genitore è co-protagonista attivo della terapia — un differenziatore raro nel settore,
+            oggi sostenuto da un team di 9 terapisti online e da un'identità editoriale che va allineata in modo più coerente su tutti i canali.
           </p>
+        </div>
+
+        <div id="discrepanza-callout" class="bg-amber-50 border border-amber-200 rounded-2xl p-6 hidden">
+          <h2 class="font-semibold text-amber-800 mb-3 flex items-center gap-2"><i data-lucide="triangle-alert" class="w-4 h-4"></i> Discrepanze brief cliente vs ricerca esterna</h2>
+          <div id="discrepanza-list" class="space-y-3"></div>
         </div>
 
         <div class="grid md:grid-cols-2 gap-4">
           <div class="bg-white rounded-2xl border border-slate-200 p-6">
             <h3 class="font-semibold text-slate-800 mb-3 flex items-center gap-2"><i data-lucide="layers" class="w-4 h-4 text-indigo-600"></i> Linee di servizio attuali</h3>
             <ul class="text-sm text-slate-600 space-y-2 list-disc list-inside">
-              <li>Percorsi online per DSA e difficoltà di apprendimento (core business)</li>
+              <li>Percorsi online per DSA e ADHD (core business)</li>
               <li>Metodo di studio</li>
               <li>Formazione per insegnanti e professionisti (B2B, poco valorizzata)</li>
             </ul>
           </div>
           <div class="bg-white rounded-2xl border border-slate-200 p-6">
-            <h3 class="font-semibold text-slate-800 mb-3 flex items-center gap-2"><i data-lucide="megaphone" class="w-4 h-4 text-indigo-600"></i> Asset editoriali</h3>
+            <h3 class="font-semibold text-slate-800 mb-3 flex items-center gap-2"><i data-lucide="megaphone" class="w-4 h-4 text-indigo-600"></i> Asset editoriali e canali dichiarati (brief)</h3>
             <ul class="text-sm text-slate-600 space-y-2 list-disc list-inside">
-              <li>Libro "DSA senza drammi" (Amazon)</li>
-              <li>Podcast su Spotify</li>
-              <li>Canale YouTube con contenuti pratici</li>
-              <li>Instagram, TikTok, Facebook attivi</li>
+              <li>Instagram @dott.ssa_aria — contenuti frequenti su DSA, ADHD, parent training</li>
+              <li>YouTube "Dott.ssa Aria" — oltre 2.000 iscritti</li>
+              <li>Libro "DSA senza drammi" (Amazon) — asset trovato in ricerca esterna</li>
+              <li>Podcast Spotify e canali Facebook/TikTok — presenti sul sito, da confermare se ancora attivi</li>
             </ul>
           </div>
         </div>
@@ -133,6 +139,24 @@
               </thead>
               <tbody id="competitor-table"></tbody>
             </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== TAB: METODO & IDENTITÀ ===== -->
+      <section id="tab-metodo" class="tab-panel hidden space-y-6">
+        <div class="bg-white rounded-2xl border border-slate-200 p-6">
+          <h2 class="font-semibold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="stethoscope" class="w-4 h-4 text-indigo-600"></i> Pilastri del Metodo</h2>
+          <div id="metodo-list" class="grid sm:grid-cols-2 gap-3"></div>
+        </div>
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="bg-white rounded-2xl border border-slate-200 p-6">
+            <h3 class="font-semibold text-slate-800 mb-3 flex items-center gap-2"><i data-lucide="brain" class="w-4 h-4 text-indigo-600"></i> Condizioni trattate</h3>
+            <div id="condizioni-list" class="flex flex-wrap gap-2"></div>
+          </div>
+          <div class="bg-white rounded-2xl border border-slate-200 p-6">
+            <h3 class="font-semibold text-slate-800 mb-3 flex items-center gap-2"><i data-lucide="message-circle" class="w-4 h-4 text-indigo-600"></i> Tono di voce</h3>
+            <div id="tone-list" class="flex flex-wrap gap-2"></div>
           </div>
         </div>
       </section>
@@ -196,32 +220,58 @@ meta,website,https://dottoressaaria.com/,,,,
 meta,scenario,Scenario A - Azienda esistente,,,,
 meta,focus_geografico,Italia (nazionale),,,,
 meta,report_date,2026-07,,,,
+meta,titolo_professionale,Logopedista & Psicologa,da brief cliente - il sito comunica solo Logopedista,,,
+meta,specializzazioni,Dislessia - Disortografia - Discalculia - ADHD,da brief cliente,,,
 metrica,Famiglie seguite,400+,famiglie in tutta Italia,,,
 metrica,Anno fondazione attivita professionale,2018,Arianna Mocellin logopedista,,,
 metrica,Anno costituzione azienda,2022-01-02,Dottoressaaria come azienda strutturata,,,
-metrica,Professionisti nel team,9,logopediste + neuropsicologa + psicologa oltre alla founder,,,
-metrica,Follower Instagram,79000,stima @dottoressaaria,,,
-metrica,Canali social attivi,5,Instagram TikTok YouTube Facebook Spotify,,,
+metrica,Professionisti nel team,9,logopedisti e psicologi - confermato da brief cliente,,,
+metrica,Instagram handle,@dott.ssa_aria,da brief cliente,,,
+metrica,YouTube iscritti,2000+,da brief cliente - canale Dott.ssa Aria,,,
+metrica,Canali social attivi,2,Instagram e YouTube dichiarati nel brief cliente come canali attivi,,,
 metrica,Linee di servizio attuali,3,DSA/apprendimento - Metodo di studio - Formazione professionisti,,,
 metrica,Pricing pubblico sul sito,No,unico funnel e chat WhatsApp diretta,,,
-competitor,Dottoressa Aria (cliente),Brand personale + team clinico online,Logopedista-creator con community e infoprodotti,Brand riconoscibile; content editoriale (libro/podcast/YouTube); funnel lead-gen strutturato; team multidisciplinare,Pricing non pubblico; dipendenza dalla founder; sito pesante lato immagini,
+metodo,Protocollo evidence-based,Fondato sulla letteratura scientifica aggiornata,,,
+metodo,Sedute one-to-one online,Bambino e genitore attivamente incluso in seduta,,,
+metodo,Parent training integrato,I genitori apprendono in seduta le stesse strategie usate dal terapista,,,
+metodo,Generalizzazione domestica,Le tecniche apprese si trasferiscono nella vita quotidiana del bambino,,,
+metodo,Attivita interattive e dinamiche,Materiali pensati per mantenere alto il coinvolgimento del bambino,,,
+metodo,Approccio anti-noia,Materiali stimolanti progettati sulle caratteristiche cognitive di bambini con DSA/ADHD,,,
+metodo,Personalizzazione costante,Ogni piano terapeutico e costruito sul profilo individuale del bambino,,,
+condizioni,Dislessia,Focus prioritario dichiarato nel brief,,,
+condizioni,Disortografia,,,,
+condizioni,Discalculia,,,,
+condizioni,DSA in senso ampio,Disturbi Specifici dell'Apprendimento,,,
+condizioni,ADHD,Disturbo da Deficit di Attenzione/Iperattivita,,,
+condizioni,Difficolta di apprendimento subcliniche,Non ancora diagnosticate,,,
+tone,Empatico,Vicino alle difficolta reali vissute da famiglie e bambini,,,
+tone,Scientifico,Ogni affermazione radicata nell'evidenza clinica e nella ricerca,,,
+tone,Pratico,Strumenti applicabili subito nella quotidianita non solo teoria,,,
+tone,Inclusivo,Rispetto per la neurodiversita senza stigma ne semplificazioni,,,
+tone,Autorevole ma caldo,Professionalita che non esclude vicinanza umana,,,
+discrepanza,Canale Instagram,Brief cliente indica handle @dott.ssa_aria,Ricerca esterna aveva individuato un account @dottoressaaria con audience stimata ~79K follower,Da verificare con la cliente quale sia l'account ufficiale attivo o se si tratta di un rebranding/secondo profilo,,
+discrepanza,Titolo professionale,Brief cliente indica Logopedista e Psicologa,Il sito dottoressaaria.com comunica solo il titolo di Logopedista in home e meta tag,Positioning da allineare tra sito e brief per non sottocomunicare la doppia specializzazione clinica,,
+discrepanza,Focus ADHD,Brief cliente indica ADHD come area di intervento primaria al pari del DSA,Il sito posiziona la home quasi esclusivamente su DSA/dislessia con ADHD citato solo nei contenuti social,ADHD e sottorappresentato nel positioning del sito rispetto a quanto dichiarato nel brief,,
+discrepanza,Canali social attivi,Brief cliente dichiara solo Instagram e YouTube come canali,Il footer del sito elenca anche Facebook e TikTok e la home cita un podcast Spotify,Verificare se questi canali sono ancora attivi/presidiati o superati rispetto al brief piu recente,,
+competitor,Dottoressa Aria (cliente),Brand personale + team clinico online,Logopedista e psicologa - creator con community e metodo protocollato,Metodo evidence-based con parent training strutturato; doppia competenza clinica (logopedia + psicologia); team di 9 terapisti; funnel lead-gen strutturato,Pricing non pubblico; dipendenza dalla founder; sito pesante lato immagini; posizionamento ADHD sottocomunicato sul sito,
 competitor,Medelit,Marketplace multi-specialita sanitarie online/domicilio,Piattaforma generalista di telemedicina,Copertura multi-specialita; tariffe pubblicate per fascia,Nessun brand riconoscibile; nessun content/community; professionista non scelto dal cliente,
 competitor,RIDInet (Anastasis),Piattaforma software di teleriabilitazione DSA/BES,Tecnologia clinica B2B2C tramite centri e scuole,Prodotto strutturato con abbonamenti; adozione istituzionale dal 2013,Percepito come strumento tecnico; nessuna relazione diretta con le famiglie; nessun brand editoriale,
 competitor,Centro Italiano Logopedia / Centro Amamente / Centro Psicologico Milano,Centri clinici tradizionali con offerta online aggiuntiva,Locale/regionale con estensione online,Radicamento territoriale; offerta multidisciplinare in presenza,Presenza digitale debole; nessuna strategia di content marketing comparabile,
-swot,Strengths,Brand personale forte e riconoscibile guidato da founder autorevole,,,
-swot,Strengths,Infrastruttura editoriale rara nel settore: libro Amazon + podcast Spotify + YouTube + 3 social attivi,,,
+swot,Strengths,Metodo protocollato scientificamente con parent training strutturato - differenziatore difficile da replicare,,,
+swot,Strengths,Doppia competenza clinica logopedia + psicologia nella stessa figura professionale,,,
+swot,Strengths,Team di 9 terapisti multidisciplinari operativi al 100% online,,,
 swot,Strengths,Funnel di acquisizione con lead magnet gratuiti (test DSA guide mini-corsi),,,
-swot,Strengths,Team multidisciplinare gia in crescita (logopedia + neuropsicologia + psicologia),,,
 swot,Strengths,Modello 100% online nativamente scalabile,,,
 swot,Strengths,Prova sociale solida: 400+ famiglie e recensioni positive,,,
 swot,Weaknesses,Pricing non pubblico unico canale di conversione e chat diretta con la founder,,,
 swot,Weaknesses,Forte dipendenza dal personal brand di Arianna Mocellin,,,
 swot,Weaknesses,Sito pesante lato immagini con possibile impatto su velocita e SEO tecnico,,,
-swot,Weaknesses,Offerta B2B formazione insegnanti/professionisti esistente ma poco valorizzata,,,
+swot,Weaknesses,Posizionamento ADHD sottocomunicato sul sito rispetto a quanto dichiarato nel brief,,,
 swot,Weaknesses,Architettura di brand oggi monolitica non pronta per linee di business distinte,,,
-swot,Opportunities,Crescita della domanda di teleriabilitazione e consapevolezza su DSA/neurodivergenze,,,
+swot,Weaknesses,Audience YouTube ancora contenuta (2.000+ iscritti) rispetto al potenziale del metodo,,,
+swot,Opportunities,Crescita della domanda di teleriabilitazione e consapevolezza su DSA/ADHD,,,
 swot,Opportunities,Monetizzazione scalabile via infoprodotti/academy a margini piu alti,,,
-swot,Opportunities,Estensione naturale su aree affini (ADHD ansia scolastica supporto genitoriale),,,
+swot,Opportunities,Posizionamento distintivo su ADHD ancora poco sfruttato in comunicazione,,,
 swot,Opportunities,Partnership con scuole ed enti formativi,,,
 swot,Opportunities,Mercato italiani all'estero raggiungibile via servizio online,,,
 swot,Threats,Ingresso di altri professionisti che replicano il modello logopedista-creator,,,
@@ -234,10 +284,12 @@ seo,logopedia bambini DSA,Presidiata,Alta priorita gia coperta,,,
 seo,test DSA online,Presidiata,Pagina dedicata con quiz,,,
 seo,DSA senza drammi,Presidiata,Keyword brandizzata legata al libro,,,
 seo,difficolta di apprendimento bambini,Presidiata,Contenuti blog,,,
+seo,ADHD bambini logopedista,Non presidiata,Opportunita persa - ADHD non centrale nel sito nonostante sia specializzazione dichiarata nel brief,,,
 seo,prezzo logopedista online,Non presidiata,Opportunita persa - nessun pricing pubblico,,,
 seo,quanto costa una seduta di logopedia online,Non presidiata,Opportunita persa - nessun pricing pubblico,,,
 seo,formazione DSA insegnanti,Non presidiata,Offerta esistente ma non comunicata via SEO,,,
 roadmap,Trasparenza su pricing e pacchetti,Nessun prezzo pubblico unico funnel e chat WhatsApp,Creare pagina Percorsi e Tariffe con fasce di prezzo indicative,Riduzione attrito primo contatto e funnel misurabile,Alto,2-4 settimane
+roadmap,Allineare sito e brief su titolo e focus ADHD,Sito comunica solo Logopedista e DSA/dislessia mentre il brief indica anche Psicologa e ADHD come aree primarie,Aggiornare home meta tag e contenuti chiave per includere doppia competenza e ADHD,Positioning coerente e piu completo su tutti i touchpoint,Alto,3-4 settimane
 roadmap,Audit tecnico e ottimizzazione performance sito,Immagini non ottimizzate rischio Core Web Vitals,Compressione WebP/AVIF lazy loading audit velocita mobile,Miglior SEO e minor abbandono mobile,Alto,2-3 settimane
 roadmap,Costruzione sub-brand B2B Academy,Offerta formazione insegnanti invisibile in comunicazione,Landing dedicata comunicazione LinkedIn pricing specifico,Nuova linea di ricavo B2B a margine piu alto,Medio,1-2 mesi
 roadmap,Diversificazione canali di acquisizione,Distribuzione concentrata su Instagram/TikTok,Presidio LinkedIn per scuole ed email marketing strutturato,Minor dipendenza da singolo canale e contatti proprietari,Medio,Continuativa 2-3 mesi
@@ -260,8 +312,8 @@ function renderAll(data) {
 
   // ---- KPI cards (overview) ----
   const metriche = bySection('metrica');
-  const iconMap = { 'Famiglie seguite': 'heart-handshake', 'Follower Instagram': 'instagram', 'Professionisti nel team': 'users', 'Canali social attivi': 'share-2', 'Linee di servizio attuali': 'layers', 'Pricing pubblico sul sito': 'tag' };
-  const kpiPick = ['Famiglie seguite','Follower Instagram','Professionisti nel team','Pricing pubblico sul sito'];
+  const iconMap = { 'Famiglie seguite': 'heart-handshake', 'Instagram handle': 'instagram', 'YouTube iscritti': 'youtube', 'Professionisti nel team': 'users', 'Canali social attivi': 'share-2', 'Linee di servizio attuali': 'layers', 'Pricing pubblico sul sito': 'tag' };
+  const kpiPick = ['Famiglie seguite','Professionisti nel team','Instagram handle','YouTube iscritti'];
   const kpiHtml = kpiPick.map(k => {
     const m = metriche.find(x => x.key === k);
     if (!m) return '';
@@ -275,6 +327,42 @@ function renderAll(data) {
     </div>`;
   }).join('');
   document.getElementById('kpi-cards').innerHTML = kpiHtml;
+
+  // ---- Discrepanze brief vs ricerca (overview) ----
+  const discrepanze = bySection('discrepanza');
+  if (discrepanze.length) {
+    document.getElementById('discrepanza-callout').classList.remove('hidden');
+    document.getElementById('discrepanza-list').innerHTML = discrepanze.map(d => `
+      <div class="border-l-2 border-amber-300 pl-3">
+        <div class="text-sm font-medium text-amber-900">${d.key}</div>
+        <div class="text-xs text-amber-800 mt-0.5"><span class="font-medium">Brief:</span> ${d.value1}</div>
+        <div class="text-xs text-amber-800"><span class="font-medium">Ricerca esterna:</span> ${d.value2}</div>
+        <div class="text-xs text-amber-700 mt-0.5 italic">${d.value3}</div>
+      </div>
+    `).join('');
+  }
+
+  // ---- Metodo, condizioni, tono (tab Metodo & Identità) ----
+  const metodo = bySection('metodo');
+  document.getElementById('metodo-list').innerHTML = metodo.map(m => `
+    <div class="flex items-start gap-2 border border-slate-100 rounded-xl px-4 py-3">
+      <i data-lucide="check-circle-2" class="w-4 h-4 text-indigo-600 mt-0.5 shrink-0"></i>
+      <div>
+        <div class="text-sm font-medium text-slate-800">${m.key}</div>
+        <div class="text-xs text-slate-500">${m.value1 || ''}</div>
+      </div>
+    </div>
+  `).join('');
+
+  const condizioni = bySection('condizioni');
+  document.getElementById('condizioni-list').innerHTML = condizioni.map(c => `
+    <span class="text-xs font-medium px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700" title="${c.value1 || ''}">${c.key}</span>
+  `).join('');
+
+  const tone = bySection('tone');
+  document.getElementById('tone-list').innerHTML = tone.map(t => `
+    <span class="text-xs font-medium px-3 py-1.5 rounded-full bg-slate-100 text-slate-700" title="${t.value1 || ''}">${t.key}</span>
+  `).join('');
 
   // ---- Competitor table ----
   const competitors = bySection('competitor');
