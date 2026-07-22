@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Luseria — Brand & Market Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,500&family=Italiana&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bordeaux:#5c1a24;
+    --bordeaux-deep:#3d0f16;
+    --gold:#b8935a;
+    --gold-light:#d9bd8f;
+    --cream:#faf6f0;
+    --ink:#2a2020;
+  }
+  body{ background:var(--cream); color:var(--ink); font-family:'Jost',sans-serif; }
+  .font-display{ font-family:'Italiana', serif; }
+  .font-serif{ font-family:'Cormorant Garamond', serif; }
+  .tab-btn{ transition:all .35s ease; }
+  .tab-btn.active{ background:var(--bordeaux); color:var(--cream); }
+  .tab-panel{ display:none; animation:fadeIn .5s ease; }
+  .tab-panel.active{ display:block; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+  .card{ border-radius:22px; }
+  .soft-border{ border:1px solid rgba(92,26,36,0.12); }
+  .gold-rule{ height:1px; background:linear-gradient(90deg, transparent, var(--gold), transparent); }
+  ::-webkit-scrollbar{ width:8px; }
+  ::-webkit-scrollbar-thumb{ background:var(--gold-light); border-radius:10px; }
+  #loginScreen{ display:flex; }
+  #appScreen{ display:none; }
+  .input-field{ border:1px solid rgba(92,26,36,0.25); border-radius:14px; padding:.75rem 1rem; width:100%; background:#fff; }
+  .input-field:focus{ outline:2px solid var(--gold); }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- ============ LOGIN SCREEN ============ -->
+<div id="loginScreen" class="min-h-screen items-center justify-center p-6" style="background:radial-gradient(120% 140% at 20% 0%, var(--bordeaux) 0%, var(--bordeaux-deep) 65%, #250a0f 100%);">
+  <div class="w-full max-w-md card bg-white/95 p-10 shadow-2xl">
+    <p class="font-serif italic text-sm tracking-[0.3em] uppercase mb-2" style="color:var(--gold);">Client Area</p>
+    <h1 class="font-display text-4xl mb-6" style="color:var(--bordeaux);">Luseria</h1>
+    <form id="loginForm" class="space-y-4">
+      <div>
+        <label class="text-xs uppercase tracking-widest text-stone-500">Email</label>
+        <input type="email" id="loginEmail" class="input-field mt-1" required placeholder="nome@agenzia.com">
+      </div>
+      <div>
+        <label class="text-xs uppercase tracking-widest text-stone-500">Password</label>
+        <input type="password" id="loginPassword" class="input-field mt-1" required placeholder="••••••••">
+      </div>
+      <p id="loginError" class="text-sm text-red-700 hidden"></p>
+      <button type="submit" class="w-full py-3 rounded-full font-medium tracking-wide" style="background:var(--bordeaux); color:var(--cream);">Accedi</button>
+    </form>
+    <div class="gold-rule my-6"></div>
+    <button id="demoBtn" class="w-full py-3 rounded-full font-medium tracking-wide border" style="border-color:var(--gold); color:var(--bordeaux);">Anteprima demo (senza login)</button>
+    <p class="text-xs text-stone-400 mt-4 font-serif">L'anteprima demo mostra dati dimostrativi, non collegati a Supabase.</p>
+  </div>
+</div>
+
+<!-- ============ APP SCREEN ============ -->
+<div id="appScreen">
+
+<!-- HEADER -->
+<header class="relative overflow-hidden" style="background:radial-gradient(120% 140% at 20% 0%, var(--bordeaux) 0%, var(--bordeaux-deep) 65%, #250a0f 100%);">
+  <div class="absolute inset-0 opacity-[0.07]" style="background-image:radial-gradient(circle at 30% 30%, var(--gold) 0, transparent 45%), radial-gradient(circle at 80% 70%, var(--gold) 0, transparent 40%);"></div>
+  <div class="max-w-6xl mx-auto px-8 py-14 relative flex items-start justify-between gap-6 flex-wrap">
+    <div>
+      <p class="font-serif italic text-[var(--gold-light)] text-sm tracking-[0.35em] uppercase mb-3">Brand & Market Intelligence Dashboard</p>
+      <h1 class="font-display text-6xl md:text-7xl tracking-wide" style="color:#f4ead9;">Luseria</h1>
+      <p class="font-serif text-lg mt-4 max-w-2xl" style="color:#e9d9c4;">La luce che ogni donna ha dentro, rivelata da un capo costruito — non esibito. Analisi di posizionamento e roadmap di lancio · Bassano del Grappa → Italia → Europa</p>
+      <div class="gold-rule mt-8 max-w-xs"></div>
+    </div>
+    <div class="flex flex-col items-end gap-2">
+      <span id="dataSourceBadge" class="text-xs uppercase tracking-widest px-3 py-1 rounded-full" style="background:rgba(255,255,255,0.12); color:#e9d9c4;">—</span>
+      <button id="logoutBtn" class="text-sm px-4 py-2 rounded-full border" style="border-color:var(--gold-light); color:#e9d9c4;">Logout</button>
+    </div>
+  </div>
+</header>
+
+<!-- TABS NAV -->
+<nav class="sticky top-0 z-30 bg-[var(--cream)]/95 backdrop-blur border-b" style="border-color:rgba(92,26,36,0.15);">
+  <div class="max-w-6xl mx-auto px-4 md:px-8 flex flex-wrap gap-2 py-3" id="tabNav"></div>
+</nav>
+
+<main class="max-w-6xl mx-auto px-4 md:px-8 py-10">
+
+  <!-- TAB 1: OVERVIEW -->
+  <section class="tab-panel active" id="tab-overview">
+    <h2 class="font-display text-3xl mb-1" style="color:var(--bordeaux);">Overview & KPI</h2>
+    <p class="font-serif text-base text-stone-600 mb-8">Stato di salute del progetto e sintesi strategica — Scenario B, lancio da zero.</p>
+
+    <div class="grid md:grid-cols-4 gap-5 mb-10" id="kpiCards">
+      <div class="card soft-border bg-white p-6">
+        <i data-lucide="target" class="w-6 h-6 mb-3" style="color:var(--gold);"></i>
+        <p class="text-xs uppercase tracking-widest text-stone-500 mb-1">Posizionamento</p>
+        <p class="font-serif text-xl leading-tight">High Street × <br>Accessible Luxury</p>
+      </div>
+      <div class="card soft-border bg-white p-6">
+        <i data-lucide="map-pin" class="w-6 h-6 mb-3" style="color:var(--gold);"></i>
+        <p class="text-xs uppercase tracking-widest text-stone-500 mb-1">Fase 1 — Origine</p>
+        <p class="font-serif text-xl leading-tight">Bassano del Grappa <br>Distretto Veneto</p>
+      </div>
+      <div class="card soft-border bg-white p-6">
+        <i data-lucide="trending-up" class="w-6 h-6 mb-3" style="color:var(--gold);"></i>
+        <p class="text-xs uppercase tracking-widest text-stone-500 mb-1">Mercato Luxury Fashion EU</p>
+        <p class="font-serif text-xl leading-tight">75–93 mld USD <br>(2024–2025)</p>
+      </div>
+      <div class="card soft-border bg-white p-6">
+        <i data-lucide="users" class="w-6 h-6 mb-3" style="color:var(--gold);"></i>
+        <p class="text-xs uppercase tracking-widest text-stone-500 mb-1">Target primario</p>
+        <p class="font-serif text-xl leading-tight">Donne 25+ <br>indipendenti, colte</p>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6 mb-10">
+      <div class="card soft-border bg-white p-8">
+        <h3 class="font-display text-2xl mb-3" style="color:var(--bordeaux);">Vision</h3>
+        <p class="font-serif text-lg leading-relaxed text-stone-700">"Diventare un punto di riferimento per chi vuole esprimere la propria personalità senza compromessi, attraverso un'eleganza consapevole e su misura — dove la sensualità non è mai esplicita, ma emerge dalla costruzione del capo."</p>
+      </div>
+      <div class="card soft-border bg-white p-8">
+        <h3 class="font-display text-2xl mb-3" style="color:var(--bordeaux);">Mission</h3>
+        <p class="font-serif text-lg leading-relaxed text-stone-700">Capi sartoriali con cura meticolosa per il dettaglio, oltre i limiti del fast fashion: eleganza autentica, consapevole, su misura, per chi apprezza arte, raffinatezza e innovazione.</p>
+      </div>
+    </div>
+
+    <div class="card soft-border p-8" style="background:linear-gradient(135deg, #fbf3e7, #f6e9d6);">
+      <div class="flex items-start gap-4">
+        <i data-lucide="alert-triangle" class="w-7 h-7 shrink-0 mt-1" style="color:var(--bordeaux);"></i>
+        <div>
+          <h3 class="font-display text-xl mb-2" style="color:var(--bordeaux);">Nota strategica prioritaria</h3>
+          <p class="font-serif text-stone-700 leading-relaxed">Il moodboard ufficiale del brand (archi gotici, corone/aureole, drappeggi rosso intenso, immaginario di potere sacro) è più marcato del vincolo "morbido e calligrafico" indicato nel brief. Prima di produrre asset grafici definitivi, va allineata con lo stilista la traduzione visiva: mantenere la profondità concettuale di "potere/sacralità femminile", ma addolcirne l'esecuzione grafica (tipografia, palette, texture) evitando riferimenti gotici o imperiali letterali.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 2: BRAND IDENTITY -->
+  <section class="tab-panel" id="tab-identity">
+    <h2 class="font-display text-3xl mb-1" style="color:var(--bordeaux);">Brand Identity & Posizionamento</h2>
+    <p class="font-serif text-base text-stone-600 mb-8">UVP, pilastri, tone of voice e target persona.</p>
+
+    <div class="card p-8 mb-8" style="background:var(--bordeaux); color:#f4ead9;">
+      <p class="text-xs uppercase tracking-[0.3em] mb-3" style="color:var(--gold-light);">Unique Value Proposition</p>
+      <p class="font-serif italic text-2xl leading-relaxed">"Luseria veste il potere silenzioso della femminilità contemporanea: capi sartoriali costruiti — non esibiti — dove ogni taglio, volume e drappeggio rivela la presenza di chi lo indossa senza bisogno di mostrarsi."</p>
+    </div>
+
+    <h3 class="font-display text-2xl mb-4" style="color:var(--bordeaux);">I 5 pilastri di brand</h3>
+    <div class="grid md:grid-cols-5 gap-4 mb-10">
+      <div class="card soft-border bg-white p-5 text-center">
+        <i data-lucide="layers" class="w-6 h-6 mx-auto mb-2" style="color:var(--gold);"></i>
+        <p class="font-serif font-medium">Costruzione</p>
+      </div>
+      <div class="card soft-border bg-white p-5 text-center">
+        <i data-lucide="sparkles" class="w-6 h-6 mx-auto mb-2" style="color:var(--gold);"></i>
+        <p class="font-serif font-medium">Presenza</p>
+      </div>
+      <div class="card soft-border bg-white p-5 text-center">
+        <i data-lucide="sprout" class="w-6 h-6 mx-auto mb-2" style="color:var(--gold);"></i>
+        <p class="font-serif font-medium">Radici</p>
+      </div>
+      <div class="card soft-border bg-white p-5 text-center">
+        <i data-lucide="leaf" class="w-6 h-6 mx-auto mb-2" style="color:var(--gold);"></i>
+        <p class="font-serif font-medium">Consapevolezza</p>
+      </div>
+      <div class="card soft-border bg-white p-5 text-center">
+        <i data-lucide="sun" class="w-6 h-6 mx-auto mb-2" style="color:var(--gold);"></i>
+        <p class="font-serif font-medium">Luce interiore</p>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6">
+      <div class="card soft-border bg-white p-6">
+        <p class="text-xs uppercase tracking-widest text-stone-500 mb-2">Persona 1 · Fase Locale</p>
+        <h4 class="font-display text-xl mb-2" style="color:var(--bordeaux);">L'Architetta di Sé</h4>
+        <p class="font-serif text-stone-700">Bassano/Nordest, 30–45 anni. Professionista, reddito medio-alto, cerca capi di territorio e piccola serie, acquisto via showroom ed eventi privati.</p>
+      </div>
+      <div class="card soft-border bg-white p-6">
+        <p class="text-xs uppercase tracking-widest text-stone-500 mb-2">Persona 2 · Fase Nazionale</p>
+        <h4 class="font-display text-xl mb-2" style="color:var(--bordeaux);">L'Urbana Consapevole</h4>
+        <p class="font-serif text-stone-700">Milano/Roma, 28–45 anni. Settore creativo, già cliente di brand niche-luxury, molto attiva su Instagram/Pinterest.</p>
+      </div>
+      <div class="card soft-border bg-white p-6">
+        <p class="text-xs uppercase tracking-widest text-stone-500 mb-2">Persona 3 · Fase Internazionale</p>
+        <h4 class="font-display text-xl mb-2" style="color:var(--bordeaux);">La Collezionista di Nicchia</h4>
+        <p class="font-serif text-stone-700">Londra/Parigi/NY/Dubai/Seoul, 25–50 anni. Cliente di marketplace curati, sensibile a storytelling "Made in Italy" autentico.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 3: COMPETITOR -->
+  <section class="tab-panel" id="tab-competitor">
+    <h2 class="font-display text-3xl mb-1" style="color:var(--bordeaux);">Analisi Concorrenza & Gap di Mercato</h2>
+    <p class="font-serif text-base text-stone-600 mb-8">Emerging designer italiani e riferimenti High Street/Premium internazionali.</p>
+
+    <h3 class="font-display text-xl mb-3" style="color:var(--bordeaux);">Competitor emergenti italiani</h3>
+    <div class="overflow-x-auto mb-10 card soft-border bg-white">
+      <table class="w-full text-left font-serif">
+        <thead style="background:#f6e9d6;">
+          <tr class="text-sm uppercase tracking-wide text-stone-600">
+            <th class="p-4">Brand</th><th class="p-4">Anno</th><th class="p-4">Posizionamento</th><th class="p-4">Rilevanza per Luseria</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y" id="competitorIT" style="border-color:rgba(92,26,36,0.1);"></tbody>
+      </table>
+    </div>
+
+    <h3 class="font-display text-xl mb-3" style="color:var(--bordeaux);">Riferimenti internazionali High Street / Premium</h3>
+    <div class="overflow-x-auto mb-10 card soft-border bg-white">
+      <table class="w-full text-left font-serif">
+        <thead style="background:#f6e9d6;">
+          <tr class="text-sm uppercase tracking-wide text-stone-600">
+            <th class="p-4">Brand</th><th class="p-4">Anno</th><th class="p-4">Nota</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y" id="competitorINTL" style="border-color:rgba(92,26,36,0.1);"></tbody>
+      </table>
+    </div>
+
+    <div class="card p-7" style="background:var(--bordeaux); color:#f4ead9;">
+      <p class="text-xs uppercase tracking-[0.3em] mb-2" style="color:var(--gold-light);">Gap di mercato</p>
+      <p class="font-serif text-lg leading-relaxed">Nessun brand emergente italiano mappato costruisce la propria identità sul binomio "potere sacro femminile + territorio veneto". Spazio scoperto e presidiabile fin dal lancio.</p>
+    </div>
+  </section>
+
+  <!-- TAB 4: SEO & SOCIAL -->
+  <section class="tab-panel" id="tab-seo">
+    <h2 class="font-display text-3xl mb-1" style="color:var(--bordeaux);">SEO & Presenza Digitale</h2>
+    <p class="font-serif text-base text-stone-600 mb-8">Strategia canali e keyword di nicchia 2025–2026.</p>
+
+    <div class="grid md:grid-cols-3 gap-6 mb-10">
+      <div class="card soft-border bg-white p-6">
+        <i data-lucide="instagram" class="w-6 h-6 mb-3" style="color:var(--gold);"></i>
+        <h4 class="font-display text-lg mb-2" style="color:var(--bordeaux);">Instagram</h4>
+        <p class="font-serif text-stone-700">Canale principale: drappeggi, dettagli costruttivi, backstage sartoriale nel distretto veneto.</p>
+      </div>
+      <div class="card soft-border bg-white p-6">
+        <i data-lucide="image" class="w-6 h-6 mb-3" style="color:var(--gold);"></i>
+        <h4 class="font-display text-lg mb-2" style="color:var(--bordeaux);">Pinterest</h4>
+        <p class="font-serif text-stone-700">Canale sottovalutato ma strategico: alta intenzionalità di ricerca, board tematiche Costruzione/Potere/Radici.</p>
+      </div>
+      <div class="card soft-border bg-white p-6">
+        <i data-lucide="video" class="w-6 h-6 mb-3" style="color:var(--gold);"></i>
+        <h4 class="font-display text-lg mb-2" style="color:var(--bordeaux);">TikTok</h4>
+        <p class="font-serif text-stone-700">Formato breve "making of": TikTok Shop +407% (2024), +108% (2025).</p>
+      </div>
+    </div>
+
+    <h3 class="font-display text-xl mb-3" style="color:var(--bordeaux);">Keyword di nicchia da presidiare</h3>
+    <div class="flex flex-wrap gap-3 mb-10" id="seoKeywords"></div>
+
+    <div class="card soft-border bg-white p-7">
+      <p class="font-serif text-stone-700 leading-relaxed">Il mercato 2025-2026 vede convivere "quiet luxury" (ricerche +300% dal 2023) e una controtendenza "loud/lazy luxury" più massimalista (Pinterest Predicts 2026). Il posizionamento "sensualità costruita" di Luseria può parlare a entrambe le correnti: sobrio nei materiali, ma con volumi/drappeggi di forte impatto visivo senza loghi o trasparenze.</p>
+    </div>
+  </section>
+
+  <!-- TAB 5: SWOT -->
+  <section class="tab-panel" id="tab-swot">
+    <h2 class="font-display text-3xl mb-1" style="color:var(--bordeaux);">Matrice SWOT Prospettica</h2>
+    <p class="font-serif text-base text-stone-600 mb-8">Basata sui dati di posizionamento e ricerca di mercato.</p>
+
+    <div class="grid md:grid-cols-2 gap-5">
+      <div class="card p-7" style="background:#eef4ea; border:1px solid #cfe0c6;">
+        <div class="flex items-center gap-2 mb-3"><i data-lucide="shield-check" class="w-5 h-5" style="color:#3f6b32;"></i><h3 class="font-display text-xl" style="color:#3f6b32;">Punti di Forza</h3></div>
+        <ul class="font-serif text-stone-700 space-y-2 list-disc pl-5" id="swotForza"></ul>
+      </div>
+      <div class="card p-7" style="background:#faf0ec; border:1px solid #ecd1c6;">
+        <div class="flex items-center gap-2 mb-3"><i data-lucide="alert-circle" class="w-5 h-5" style="color:#a8442a;"></i><h3 class="font-display text-xl" style="color:#a8442a;">Debolezze</h3></div>
+        <ul class="font-serif text-stone-700 space-y-2 list-disc pl-5" id="swotDebolezze"></ul>
+      </div>
+      <div class="card p-7" style="background:#eaf1f6; border:1px solid #c6dbe8;">
+        <div class="flex items-center gap-2 mb-3"><i data-lucide="lightbulb" class="w-5 h-5" style="color:#2c6485;"></i><h3 class="font-display text-xl" style="color:#2c6485;">Opportunità</h3></div>
+        <ul class="font-serif text-stone-700 space-y-2 list-disc pl-5" id="swotOpportunita"></ul>
+      </div>
+      <div class="card p-7" style="background:#f6eeea; border:1px solid #e0c9ba;">
+        <div class="flex items-center gap-2 mb-3"><i data-lucide="cloud-lightning" class="w-5 h-5" style="color:#8a5a2a;"></i><h3 class="font-display text-xl" style="color:#8a5a2a;">Minacce</h3></div>
+        <ul class="font-serif text-stone-700 space-y-2 list-disc pl-5" id="swotMinacce"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 6: ROADMAP -->
+  <section class="tab-panel" id="tab-roadmap">
+    <h2 class="font-display text-3xl mb-1" style="color:var(--bordeaux);">Roadmap Strategica & Proposta Commerciale</h2>
+    <p class="font-serif text-base text-stone-600 mb-8">Go-to-market in tre fasi geografiche.</p>
+
+    <div class="relative pl-8 mb-12" id="roadmapTimeline" style="border-left:2px solid var(--gold-light);"></div>
+
+    <h3 class="font-display text-2xl mb-4" style="color:var(--bordeaux);">Servizi proponibili dall'agenzia</h3>
+    <div class="grid md:grid-cols-2 gap-4">
+      <div class="card soft-border bg-white p-5 flex gap-3 items-start"><i data-lucide="palette" class="w-5 h-5 mt-1" style="color:var(--gold);"></i><p class="font-serif text-stone-700">Brand identity completa (logo, palette, guidelines, packaging)</p></div>
+      <div class="card soft-border bg-white p-5 flex gap-3 items-start"><i data-lucide="calendar" class="w-5 h-5 mt-1" style="color:var(--gold);"></i><p class="font-serif text-stone-700">Content strategy e piano editoriale social trimestrale</p></div>
+      <div class="card soft-border bg-white p-5 flex gap-3 items-start"><i data-lucide="search" class="w-5 h-5 mt-1" style="color:var(--gold);"></i><p class="font-serif text-stone-700">SEO on-site e strategia editoriale del journal</p></div>
+      <div class="card soft-border bg-white p-5 flex gap-3 items-start"><i data-lucide="store" class="w-5 h-5 mt-1" style="color:var(--gold);"></i><p class="font-serif text-stone-700">Selezione e negoziazione marketplace curati</p></div>
+      <div class="card soft-border bg-white p-5 flex gap-3 items-start"><i data-lucide="megaphone" class="w-5 h-5 mt-1" style="color:var(--gold);"></i><p class="font-serif text-stone-700">Media relations/PR per fiere e stampa di settore</p></div>
+      <div class="card soft-border bg-white p-5 flex gap-3 items-start"><i data-lucide="bar-chart-3" class="w-5 h-5 mt-1" style="color:var(--gold);"></i><p class="font-serif text-stone-700">Monitoraggio KPI brand health trimestrale</p></div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="text-center py-8 font-serif text-sm text-stone-500">
+  Luseria — Dashboard di posizionamento strategico · Luglio 2026
+</footer>
+
+</div><!-- /appScreen -->
+
+<script>
+/* ==========================================================================
+   CONFIGURAZIONE SUPABASE
+   ========================================================================== */
+const SUPABASE_URL = "https://bydkcpdjebpgkmqutptu.supabase.co";
+const SUPABASE_KEY = "sb_publishable_VasX4SkGnLJFgMC_80TfmQ_0tYurGBL";
+const STORAGE_BUCKET = "data";
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ==========================================================================
+   DATI DI FALLBACK (stessa struttura di data.csv: sezione, campo1..campo6)
+   Usati per l'anteprima demo e come rete di sicurezza se il fetch da
+   Supabase Storage fallisce dopo il login.
+   ========================================================================== */
+const FALLBACK_DATA = [
+  {sezione:'competitor', campo1:'Giuliva Heritage', campo2:'—', campo3:'Sartoria napoletana + contemporaneità', campo4:'', campo5:'Radice territoriale come asset internazionale', campo6:'IT'},
+  {sezione:'competitor', campo1:'Vitelli', campo2:'2016', campo3:'Knitwear, forte wholesale', campo4:'', campo5:'Crescita indipendente senza gruppo', campo6:'IT'},
+  {sezione:'competitor', campo1:'PECORANERA', campo2:'—', campo3:'Knitwear, collettivo giovane, MFW', campo4:'', campo5:'Visibilità raggiungibile da brand giovanissimi', campo6:'IT'},
+  {sezione:'competitor', campo1:'Àlea / Prani', campo2:'2018 / 2020', campo3:'Minimalismo, femminilità contemporanea', campo4:'', campo5:'Concorrenza diretta sul target — da monitorare', campo6:'IT'},
+  {sezione:'competitor', campo1:'SCA/JA', campo2:'2024', campo3:'Calzature, debutto recente', campo4:'', campo5:'Benchmark visibilità al primo anno', campo6:'IT'},
+  {sezione:'competitor', campo1:'Jacquemus', campo2:'2009', campo3:"Da 11,5M€ a ~280M€ ricavi; L'Oréal ~10% della divisione moda; shift a D2C", campo4:'', campo5:'', campo6:'INTL'},
+  {sezione:'competitor', campo1:'Nensi Dojaka', campo2:'2019', campo3:'Cifre sensuali/mascoline, LVMH Prize — riferimento diretto per costruzione', campo4:'', campo5:'', campo6:'INTL'},
+  {sezione:'competitor', campo1:'Magda Butrym', campo2:'2014', campo3:'Femminilità romantica, niche best-seller nei department store', campo4:'', campo5:'', campo6:'INTL'},
+  {sezione:'competitor', campo1:'The Attico', campo2:'—', campo3:'Niche best-seller, presenza su Ssense e multibrand luxury', campo4:'', campo5:'', campo6:'INTL'},
+
+  {sezione:'swot', campo1:'Punti di Forza', campo3:'Naming e concept identitari già forti e radicati simbolicamente', campo4:'Alto'},
+  {sezione:'swot', campo1:'Punti di Forza', campo3:'Posizionamento "sensualità costruita" raro nel panorama emergente', campo4:'Alto'},
+  {sezione:'swot', campo1:'Punti di Forza', campo3:"Legame autentico con distretto manifatturiero d'eccellenza (Veneto)", campo4:'Medio-Alto'},
+  {sezione:'swot', campo1:'Punti di Forza', campo3:"Target con potere d'acquisto medio-alto e alta affinità valoriale", campo4:'Medio'},
+  {sezione:'swot', campo1:'Debolezze', campo3:'Brand a fase zero: nessuna produzione/distribuzione esistente', campo4:'Alto'},
+  {sezione:'swot', campo1:'Debolezze', campo3:'Ambiguità visiva moodboard vs. vincolo "morbido/calligrafico" da risolvere', campo4:'Alto'},
+  {sezione:'swot', campo1:'Debolezze', campo3:'Dipendenza da un solo founder/stilista', campo4:'Medio'},
+  {sezione:'swot', campo1:'Debolezze', campo3:'Capitale e produzione in piccola serie ancora da strutturare', campo4:'Medio-Alto'},
+  {sezione:'swot', campo1:'Opportunita', campo3:'Narrativa "Veneto sartoriale" scoperta rispetto a Napoli/Milano', campo4:'Alto'},
+  {sezione:'swot', campo1:'Opportunita', campo3:'Convergenza tra "quiet" e "loud luxury" 2025-26 parlabile da entrambi i lati', campo4:'Medio-Alto'},
+  {sezione:'swot', campo1:'Opportunita', campo3:'Canali a basso costo d\'ingresso oggi più maturi (marketplace, fiere, social)', campo4:'Medio'},
+  {sezione:'swot', campo1:'Opportunita', campo3:'Partnership dirette con laboratori del distretto come asset di marketing', campo4:'Medio'},
+  {sezione:'swot', campo1:'Minacce', campo3:'Concorrenza diretta di brand affermati (Magda Butrym, The Attico, Dojaka)', campo4:'Alto'},
+  {sezione:'swot', campo1:'Minacce', campo3:'Saturazione digitale e costo crescente di acquisizione clienti', campo4:'Medio-Alto'},
+  {sezione:'swot', campo1:'Minacce', campo3:'Rischio percezione "dark/gotica" se l\'esecuzione visiva non è calibrata', campo4:'Alto'},
+  {sezione:'swot', campo1:'Minacce', campo3:'Volatilità macro su dazi, energia e materie prime per la filiera italiana', campo4:'Medio'},
+
+  {sezione:'seo', campo1:'sartorial fashion', campo3:'Informativo/Navigazionale', campo4:'Media'},
+  {sezione:'seo', campo1:'made to measure', campo3:'Transazionale', campo4:'Media-Alta'},
+  {sezione:'seo', campo1:'slow fashion', campo3:'Informativo', campo4:'Alta'},
+  {sezione:'seo', campo1:'quiet luxury', campo3:'Informativo/Ispirazionale', campo4:'Alta'},
+  {sezione:'seo', campo1:'lazy luxury', campo3:'Ispirazionale', campo4:'Media'},
+  {sezione:'seo', campo1:'tailored volume dress', campo3:'Transazionale', campo4:'Bassa-Media'},
+  {sezione:'seo', campo1:'contemporary Italian designer', campo3:'Navigazionale', campo4:'Media'},
+  {sezione:'seo', campo1:'sartoria Bassano del Grappa', campo3:'Navigazionale/Locale', campo4:'Bassa'},
+  {sezione:'seo', campo1:'made in Veneto fashion', campo3:'Informativo/Locale', campo4:'Bassa'},
+
+  {sezione:'roadmap', campo1:'Fase 1 · 0–12 mesi · Locale · Bassano del Grappa/Veneto', campo2:'Workshop allineamento visivo e brand guidelines', campo3:'0-3 mesi', campo4:'Alta'},
+  {sezione:'roadmap', campo1:'Fase 1 · 0–12 mesi · Locale · Bassano del Grappa/Veneto', campo2:'Capsule collection con laboratori del distretto veneto', campo3:'3-9 mesi', campo4:'Alta'},
+  {sezione:'roadmap', campo1:'Fase 1 · 0–12 mesi · Locale · Bassano del Grappa/Veneto', campo2:'Attivazione Instagram e Pinterest ufficiali', campo3:'0-2 mesi', campo4:'Alta'},
+  {sezione:'roadmap', campo1:'Fase 1 · 0–12 mesi · Locale · Bassano del Grappa/Veneto', campo2:'Showroom su appuntamento ed evento in villa storica', campo3:'6-12 mesi', campo4:'Media'},
+  {sezione:'roadmap', campo1:'Fase 2 · 12–24 mesi · Nazionale · Italia', campo2:'Presenza a White Milano, Super, Mipap', campo3:'12-18 mesi', campo4:'Alta'},
+  {sezione:'roadmap', campo1:'Fase 2 · 12–24 mesi · Nazionale · Italia', campo2:'Ingresso su marketplace curato Wolf & Badger', campo3:'12-15 mesi', campo4:'Media-Alta'},
+  {sezione:'roadmap', campo1:'Fase 2 · 12–24 mesi · Nazionale · Italia', campo2:'Collaborazioni editoriali e micro-influencer di nicchia', campo3:'15-24 mesi', campo4:'Media'},
+  {sezione:'roadmap', campo1:'Fase 3 · 24–48 mesi · Internazionale', campo2:'Espansione su Farfetch e marketplace luxury curati', campo3:'24-30 mesi', campo4:'Media'},
+  {sezione:'roadmap', campo1:'Fase 3 · 24–48 mesi · Internazionale', campo2:'Showroom condiviso Milano/Parigi', campo3:'30-36 mesi', campo4:'Media'},
+  {sezione:'roadmap', campo1:'Fase 3 · 24–48 mesi · Internazionale', campo2:'Targeting hub Londra, Parigi, Dubai, Seoul, New York', campo3:'36-48 mesi', campo4:'Media'},
+  {sezione:'roadmap', campo1:'Fase 3 · 24–48 mesi · Internazionale', campo2:'Valutazione partnership o investitori di minoranza', campo3:'42-48 mesi', campo4:'Bassa-Media'},
+];
+
+/* ==========================================================================
+   TABS
+   ========================================================================== */
+const tabs = [
+  {id:'overview', label:'Overview & KPI', icon:'layout-dashboard'},
+  {id:'identity', label:'Brand Identity', icon:'gem'},
+  {id:'competitor', label:'Competitor', icon:'swords'},
+  {id:'seo', label:'SEO & Social', icon:'hash'},
+  {id:'swot', label:'SWOT', icon:'grid-2x2'},
+  {id:'roadmap', label:'Roadmap', icon:'route'},
+];
+function buildNav(){
+  const nav = document.getElementById('tabNav');
+  nav.innerHTML = '';
+  tabs.forEach((t,i)=>{
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 border' + (i===0 ? ' active' : '');
+    btn.style.borderColor = 'rgba(92,26,36,0.2)';
+    btn.style.color = i===0 ? '' : 'var(--bordeaux)';
+    btn.innerHTML = `<i data-lucide="${t.icon}" class="w-4 h-4"></i>${t.label}`;
+    btn.onclick = () => switchTab(t.id, btn);
+    nav.appendChild(btn);
+  });
+  lucide.createIcons();
+}
+function switchTab(id, btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b=>{ b.classList.remove('active'); b.style.color='var(--bordeaux)'; });
+  btn.classList.add('active'); btn.style.color='';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+/* ==========================================================================
+   RENDER DATI (competitor, swot, seo, roadmap) — chiamata solo dopo il
+   parsing completo del CSV (reale o di fallback)
+   ========================================================================== */
+function esc(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+function renderCompetitor(rows){
+  const it = rows.filter(r => r.sezione==='competitor' && r.campo6==='IT');
+  const intl = rows.filter(r => r.sezione==='competitor' && r.campo6==='INTL');
+  document.getElementById('competitorIT').innerHTML = it.map(r =>
+    `<tr><td class="p-4 font-medium">${esc(r.campo1)}</td><td class="p-4">${esc(r.campo2)}</td><td class="p-4">${esc(r.campo3)}</td><td class="p-4">${esc(r.campo5)}</td></tr>`
+  ).join('');
+  document.getElementById('competitorINTL').innerHTML = intl.map(r =>
+    `<tr><td class="p-4 font-medium">${esc(r.campo1)}</td><td class="p-4">${esc(r.campo2)}</td><td class="p-4">${esc(r.campo3)}</td></tr>`
+  ).join('');
+}
+
+function renderSwot(rows){
+  const map = {'Punti di Forza':'swotForza','Debolezze':'swotDebolezze','Opportunita':'swotOpportunita','Minacce':'swotMinacce'};
+  Object.keys(map).forEach(cat=>{
+    const el = document.getElementById(map[cat]);
+    const items = rows.filter(r => r.sezione==='swot' && r.campo1===cat);
+    el.innerHTML = items.map(r => `<li>${esc(r.campo3)}${r.campo4 ? ' <span class="text-xs uppercase tracking-wide opacity-60">(' + esc(r.campo4) + ')</span>' : ''}</li>`).join('');
+  });
+}
+
+function renderSeo(rows){
+  const el = document.getElementById('seoKeywords');
+  const items = rows.filter(r => r.sezione==='seo');
+  el.innerHTML = items.map(r =>
+    `<span class="px-4 py-2 rounded-full text-sm font-serif" style="background:#f6e9d6; color:var(--bordeaux);" title="${esc(r.campo3)} · difficoltà: ${esc(r.campo4)}">${esc(r.campo1)}</span>`
+  ).join('');
+}
+
+function renderRoadmap(rows){
+  const el = document.getElementById('roadmapTimeline');
+  const items = rows.filter(r => r.sezione==='roadmap');
+  const phases = [...new Set(items.map(r=>r.campo1))];
+  el.innerHTML = phases.map((phase, i) => {
+    const azioni = items.filter(r=>r.campo1===phase);
+    const azioniHtml = azioni.map(a => `<li class="mb-1"><span class="font-medium">${esc(a.campo2)}</span> <span class="text-sm opacity-60">— ${esc(a.campo3)}, priorità ${esc(a.campo4)}</span></li>`).join('');
+    return `<div class="mb-10 relative">
+      <div class="absolute -left-[38px] w-4 h-4 rounded-full" style="background:var(--bordeaux);"></div>
+      <h4 class="font-display text-xl mb-2" style="color:var(--bordeaux);">${esc(phase)}</h4>
+      <ul class="font-serif text-stone-700 list-disc pl-5">${azioniHtml}</ul>
+    </div>`;
+  }).join('');
+}
+
+function renderAll(rows, sourceLabel){
+  renderCompetitor(rows);
+  renderSwot(rows);
+  renderSeo(rows);
+  renderRoadmap(rows);
+  document.getElementById('dataSourceBadge').textContent = sourceLabel;
+  lucide.createIcons();
+}
+
+/* ==========================================================================
+   AUTENTICAZIONE SUPABASE + FETCH CSV DA STORAGE
+   ========================================================================== */
+function showApp(){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+}
+function showLogin(){
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+async function loadClientData(){
+  try {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) throw new Error('Utente non autenticato');
+
+    // 1. Recupera il codice cliente dalla tabella profiles
+    const { data: profile, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('client')
+      .eq('id', user.id)
+      .single();
+    if (profileError || !profile || !profile.client) throw new Error('Profilo cliente non trovato');
+
+    // 2. Scarica il CSV dallo Storage: /data/[client]/data.csv
+    const path = `${profile.client}/data.csv`;
+    const { data: fileBlob, error: downloadError } = await supabaseClient
+      .storage.from(STORAGE_BUCKET).download(path);
+    if (downloadError || !fileBlob) throw new Error('CSV non trovato in Storage: ' + path);
+
+    const csvText = await fileBlob.text();
+    const parsed = Papa.parse(csvText, { header:true, skipEmptyLines:true });
+    renderAll(parsed.data, `Dati live · ${profile.client}`);
+  } catch (err) {
+    console.warn('Fallback ai dati dimostrativi:', err.message);
+    renderAll(FALLBACK_DATA, 'Dati dimostrativi (fallback)');
+  }
+}
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.classList.add('hidden');
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) {
+    errEl.textContent = 'Accesso non riuscito: ' + error.message;
+    errEl.classList.remove('hidden');
+    return;
+  }
+  showApp();
+  buildNav();
+  loadClientData();
+});
+
+document.getElementById('demoBtn').addEventListener('click', () => {
+  showApp();
+  buildNav();
+  renderAll(FALLBACK_DATA, 'Anteprima demo (senza login)');
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await supabaseClient.auth.signOut();
+  showLogin();
+});
+
+/* Sessione persistente: se l'utente ha già una sessione valida al reload, salta il login */
+(async function initSession(){
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+      showApp();
+      buildNav();
+      loadClientData();
+    } else {
+      showLogin();
+    }
+  } catch (e) {
+    showLogin();
+  }
+})();
+</script>
+</body>
+</html>
