@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard Brand Analysis — Dottoressa Aria</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+  .tab-btn.active { background-color: #4f46e5; color: white; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 4px; }
+</style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+<!-- ==================== LOGIN VIEW ==================== -->
+<div id="login-view" class="min-h-screen flex items-center justify-center px-4">
+  <div class="w-full max-w-sm bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
+    <div class="flex flex-col items-center mb-6">
+      <div class="w-14 h-14 rounded-full bg-indigo-600 flex items-center justify-center mb-3">
+        <i data-lucide="sparkles" class="text-white w-7 h-7"></i>
+      </div>
+      <h1 class="text-xl font-bold text-slate-800">Brand Analysis Dashboard</h1>
+      <p class="text-sm text-slate-500 mt-1">Accedi per visualizzare il report</p>
+    </div>
+    <form id="login-form" class="space-y-4">
+      <div>
+        <label class="text-xs font-medium text-slate-500">Email</label>
+        <input id="login-email" type="email" required class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="nome@email.com" />
+      </div>
+      <div>
+        <label class="text-xs font-medium text-slate-500">Password</label>
+        <input id="login-password" type="password" required class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="••••••••" />
+      </div>
+      <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg py-2.5 text-sm transition">Accedi</button>
+      <p id="login-error" class="text-xs text-red-500 hidden"></p>
+    </form>
+  </div>
+</div>
+
+<!-- ==================== DASHBOARD VIEW ==================== -->
+<div id="dashboard-view" class="hidden min-h-screen">
+
+  <!-- Navbar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center">
+          <i data-lucide="stethoscope" class="text-white w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-slate-800 leading-tight">Dottoressa Aria</h1>
+          <p class="text-xs text-slate-400 leading-tight">Brand &amp; Market Analysis · Luglio 2026</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <span id="user-email-label" class="text-xs text-slate-400 hidden sm:inline"></span>
+        <button id="logout-btn" class="text-xs font-medium text-slate-500 hover:text-red-500 border border-slate-200 rounded-lg px-3 py-1.5 flex items-center gap-1.5 transition">
+          <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Logout
+        </button>
+      </div>
+    </div>
+    <!-- Tabs -->
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 flex gap-2 overflow-x-auto pb-2">
+      <button data-tab="overview" class="tab-btn active whitespace-nowrap text-sm font-medium px-4 py-1.5 rounded-full border border-slate-200 transition">Overview</button>
+      <button data-tab="brand" class="tab-btn whitespace-nowrap text-sm font-medium px-4 py-1.5 rounded-full border border-slate-200 transition">Brand &amp; Competitor</button>
+      <button data-tab="seo" class="tab-btn whitespace-nowrap text-sm font-medium px-4 py-1.5 rounded-full border border-slate-200 transition">SEO &amp; Social</button>
+      <button data-tab="swot" class="tab-btn whitespace-nowrap text-sm font-medium px-4 py-1.5 rounded-full border border-slate-200 transition">SWOT</button>
+      <button data-tab="roadmap" class="tab-btn whitespace-nowrap text-sm font-medium px-4 py-1.5 rounded-full border border-slate-200 transition">Roadmap</button>
+    </nav>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <div id="loading-state" class="text-center py-20 text-slate-400 text-sm">
+      <i data-lucide="loader-circle" class="w-6 h-6 mx-auto mb-2 animate-spin"></i>
+      Caricamento dati in corso...
+    </div>
+
+    <div id="content" class="hidden space-y-8">
+
+      <!-- ===== TAB: OVERVIEW ===== -->
+      <section id="tab-overview" class="tab-panel space-y-6">
+        <div id="kpi-cards" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-6">
+          <h2 class="font-semibold text-slate-800 mb-2 flex items-center gap-2"><i data-lucide="target" class="w-4 h-4 text-indigo-600"></i> Posizionamento in una frase</h2>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Dottoressa Aria è l'unico brand personale italiano nel settore DSA/logopedia che unisce servizio clinico multidisciplinare,
+            community social ampia e infoprodotti editoriali (libro, podcast, corsi) sotto un'unica identità guidata dalla founder Arianna Mocellin —
+            un vantaggio competitivo oggi difendibile ma da mettere in sicurezza con un'architettura di brand pronta per la crescita.
+          </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="bg-white rounded-2xl border border-slate-200 p-6">
+            <h3 class="font-semibold text-slate-800 mb-3 flex items-center gap-2"><i data-lucide="layers" class="w-4 h-4 text-indigo-600"></i> Linee di servizio attuali</h3>
+            <ul class="text-sm text-slate-600 space-y-2 list-disc list-inside">
+              <li>Percorsi online per DSA e difficoltà di apprendimento (core business)</li>
+              <li>Metodo di studio</li>
+              <li>Formazione per insegnanti e professionisti (B2B, poco valorizzata)</li>
+            </ul>
+          </div>
+          <div class="bg-white rounded-2xl border border-slate-200 p-6">
+            <h3 class="font-semibold text-slate-800 mb-3 flex items-center gap-2"><i data-lucide="megaphone" class="w-4 h-4 text-indigo-600"></i> Asset editoriali</h3>
+            <ul class="text-sm text-slate-600 space-y-2 list-disc list-inside">
+              <li>Libro "DSA senza drammi" (Amazon)</li>
+              <li>Podcast su Spotify</li>
+              <li>Canale YouTube con contenuti pratici</li>
+              <li>Instagram, TikTok, Facebook attivi</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== TAB: BRAND & COMPETITOR ===== -->
+      <section id="tab-brand" class="tab-panel hidden space-y-6">
+        <div class="bg-white rounded-2xl border border-slate-200 p-6">
+          <h2 class="font-semibold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-indigo-600"></i> Confronto Competitor</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-left text-slate-400 border-b border-slate-100">
+                  <th class="py-2 pr-4 font-medium">Competitor</th>
+                  <th class="py-2 pr-4 font-medium">Modello</th>
+                  <th class="py-2 pr-4 font-medium">Posizionamento</th>
+                  <th class="py-2 pr-4 font-medium">Punti di forza</th>
+                  <th class="py-2 pr-4 font-medium">Punti deboli</th>
+                </tr>
+              </thead>
+              <tbody id="competitor-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== TAB: SEO & SOCIAL ===== -->
+      <section id="tab-seo" class="tab-panel hidden space-y-6">
+        <div class="bg-white rounded-2xl border border-slate-200 p-6">
+          <h2 class="font-semibold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="search" class="w-4 h-4 text-indigo-600"></i> Keyword &amp; Presidio SEO</h2>
+          <div id="seo-list" class="space-y-2"></div>
+        </div>
+      </section>
+
+      <!-- ===== TAB: SWOT ===== -->
+      <section id="tab-swot" class="tab-panel hidden">
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="bg-emerald-50 rounded-2xl border border-emerald-200 p-5">
+            <h3 class="font-semibold text-emerald-700 mb-3 flex items-center gap-2"><i data-lucide="trending-up" class="w-4 h-4"></i> Strengths</h3>
+            <ul id="swot-strengths" class="text-sm text-emerald-900 space-y-2 list-disc list-inside"></ul>
+          </div>
+          <div class="bg-rose-50 rounded-2xl border border-rose-200 p-5">
+            <h3 class="font-semibold text-rose-700 mb-3 flex items-center gap-2"><i data-lucide="trending-down" class="w-4 h-4"></i> Weaknesses</h3>
+            <ul id="swot-weaknesses" class="text-sm text-rose-900 space-y-2 list-disc list-inside"></ul>
+          </div>
+          <div class="bg-sky-50 rounded-2xl border border-sky-200 p-5">
+            <h3 class="font-semibold text-sky-700 mb-3 flex items-center gap-2"><i data-lucide="lightbulb" class="w-4 h-4"></i> Opportunities</h3>
+            <ul id="swot-opportunities" class="text-sm text-sky-900 space-y-2 list-disc list-inside"></ul>
+          </div>
+          <div class="bg-amber-50 rounded-2xl border border-amber-200 p-5">
+            <h3 class="font-semibold text-amber-700 mb-3 flex items-center gap-2"><i data-lucide="triangle-alert" class="w-4 h-4"></i> Threats</h3>
+            <ul id="swot-threats" class="text-sm text-amber-900 space-y-2 list-disc list-inside"></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== TAB: ROADMAP ===== -->
+      <section id="tab-roadmap" class="tab-panel hidden">
+        <div id="roadmap-list" class="space-y-4"></div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script>
+// ============ CONFIGURAZIONE SUPABASE ============
+const SUPABASE_URL = "https://bydkcpdjebpgkmqutptu.supabase.co";
+const SUPABASE_KEY = "sb_publishable_VasX4SkGnLJFgMC_80TfmQ_0tYurGBL";
+const STORAGE_BUCKET = "data";
+// Il codice leggerà il CSV da: /data/dottoressaaria2026/data.csv
+// ==================================================
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true }
+});
+
+// ---------- Dati di fallback (visibili subito, prima del collegamento reale a Supabase) ----------
+const FALLBACK_CSV = `section,key,value1,value2,value3,value4,value5
+meta,client_name,Dottoressa Aria,,,,
+meta,client_id,dottoressaaria2026,,,,
+meta,website,https://dottoressaaria.com/,,,,
+meta,scenario,Scenario A - Azienda esistente,,,,
+meta,focus_geografico,Italia (nazionale),,,,
+meta,report_date,2026-07,,,,
+metrica,Famiglie seguite,400+,famiglie in tutta Italia,,,
+metrica,Anno fondazione attivita professionale,2018,Arianna Mocellin logopedista,,,
+metrica,Anno costituzione azienda,2022-01-02,Dottoressaaria come azienda strutturata,,,
+metrica,Professionisti nel team,9,logopediste + neuropsicologa + psicologa oltre alla founder,,,
+metrica,Follower Instagram,79000,stima @dottoressaaria,,,
+metrica,Canali social attivi,5,Instagram TikTok YouTube Facebook Spotify,,,
+metrica,Linee di servizio attuali,3,DSA/apprendimento - Metodo di studio - Formazione professionisti,,,
+metrica,Pricing pubblico sul sito,No,unico funnel e chat WhatsApp diretta,,,
+competitor,Dottoressa Aria (cliente),Brand personale + team clinico online,Logopedista-creator con community e infoprodotti,Brand riconoscibile; content editoriale (libro/podcast/YouTube); funnel lead-gen strutturato; team multidisciplinare,Pricing non pubblico; dipendenza dalla founder; sito pesante lato immagini,
+competitor,Medelit,Marketplace multi-specialita sanitarie online/domicilio,Piattaforma generalista di telemedicina,Copertura multi-specialita; tariffe pubblicate per fascia,Nessun brand riconoscibile; nessun content/community; professionista non scelto dal cliente,
+competitor,RIDInet (Anastasis),Piattaforma software di teleriabilitazione DSA/BES,Tecnologia clinica B2B2C tramite centri e scuole,Prodotto strutturato con abbonamenti; adozione istituzionale dal 2013,Percepito come strumento tecnico; nessuna relazione diretta con le famiglie; nessun brand editoriale,
+competitor,Centro Italiano Logopedia / Centro Amamente / Centro Psicologico Milano,Centri clinici tradizionali con offerta online aggiuntiva,Locale/regionale con estensione online,Radicamento territoriale; offerta multidisciplinare in presenza,Presenza digitale debole; nessuna strategia di content marketing comparabile,
+swot,Strengths,Brand personale forte e riconoscibile guidato da founder autorevole,,,
+swot,Strengths,Infrastruttura editoriale rara nel settore: libro Amazon + podcast Spotify + YouTube + 3 social attivi,,,
+swot,Strengths,Funnel di acquisizione con lead magnet gratuiti (test DSA guide mini-corsi),,,
+swot,Strengths,Team multidisciplinare gia in crescita (logopedia + neuropsicologia + psicologia),,,
+swot,Strengths,Modello 100% online nativamente scalabile,,,
+swot,Strengths,Prova sociale solida: 400+ famiglie e recensioni positive,,,
+swot,Weaknesses,Pricing non pubblico unico canale di conversione e chat diretta con la founder,,,
+swot,Weaknesses,Forte dipendenza dal personal brand di Arianna Mocellin,,,
+swot,Weaknesses,Sito pesante lato immagini con possibile impatto su velocita e SEO tecnico,,,
+swot,Weaknesses,Offerta B2B formazione insegnanti/professionisti esistente ma poco valorizzata,,,
+swot,Weaknesses,Architettura di brand oggi monolitica non pronta per linee di business distinte,,,
+swot,Opportunities,Crescita della domanda di teleriabilitazione e consapevolezza su DSA/neurodivergenze,,,
+swot,Opportunities,Monetizzazione scalabile via infoprodotti/academy a margini piu alti,,,
+swot,Opportunities,Estensione naturale su aree affini (ADHD ansia scolastica supporto genitoriale),,,
+swot,Opportunities,Partnership con scuole ed enti formativi,,,
+swot,Opportunities,Mercato italiani all'estero raggiungibile via servizio online,,,
+swot,Threats,Ingresso di altri professionisti che replicano il modello logopedista-creator,,,
+swot,Threats,Concentrazione del rischio reputazionale/commerciale su una unica persona fisica,,,
+swot,Threats,Dipendenza da piattaforme social terze e cambi di algoritmo,,,
+swot,Threats,Vincoli normativi sulla pubblicita sanitaria,,,
+swot,Threats,Concorrenza di player tecnologici con capitali maggiori,,,
+seo,logopedista DSA online,Presidiata,Alta priorita gia coperta,,,
+seo,logopedia bambini DSA,Presidiata,Alta priorita gia coperta,,,
+seo,test DSA online,Presidiata,Pagina dedicata con quiz,,,
+seo,DSA senza drammi,Presidiata,Keyword brandizzata legata al libro,,,
+seo,difficolta di apprendimento bambini,Presidiata,Contenuti blog,,,
+seo,prezzo logopedista online,Non presidiata,Opportunita persa - nessun pricing pubblico,,,
+seo,quanto costa una seduta di logopedia online,Non presidiata,Opportunita persa - nessun pricing pubblico,,,
+seo,formazione DSA insegnanti,Non presidiata,Offerta esistente ma non comunicata via SEO,,,
+roadmap,Trasparenza su pricing e pacchetti,Nessun prezzo pubblico unico funnel e chat WhatsApp,Creare pagina Percorsi e Tariffe con fasce di prezzo indicative,Riduzione attrito primo contatto e funnel misurabile,Alto,2-4 settimane
+roadmap,Audit tecnico e ottimizzazione performance sito,Immagini non ottimizzate rischio Core Web Vitals,Compressione WebP/AVIF lazy loading audit velocita mobile,Miglior SEO e minor abbandono mobile,Alto,2-3 settimane
+roadmap,Costruzione sub-brand B2B Academy,Offerta formazione insegnanti invisibile in comunicazione,Landing dedicata comunicazione LinkedIn pricing specifico,Nuova linea di ricavo B2B a margine piu alto,Medio,1-2 mesi
+roadmap,Diversificazione canali di acquisizione,Distribuzione concentrata su Instagram/TikTok,Presidio LinkedIn per scuole ed email marketing strutturato,Minor dipendenza da singolo canale e contatti proprietari,Medio,Continuativa 2-3 mesi
+roadmap,Test di mercato nuova verticale,Vision di espansione ampia non ancora prioritizzata,Testare interesse via contenuti su ADHD/ansia scolastica prima di investire,Dati reali di domanda prima di investimento strutturale,Basso,3-6 mesi
+`;
+
+let rows = [];
+
+function parseCsv(text) {
+  const result = Papa.parse(text.trim(), { header: true, skipEmptyLines: true });
+  return result.data;
+}
+
+function renderAll(data) {
+  rows = data;
+  document.getElementById('loading-state').classList.add('hidden');
+  document.getElementById('content').classList.remove('hidden');
+
+  const bySection = (s) => rows.filter(r => r.section === s);
+
+  // ---- KPI cards (overview) ----
+  const metriche = bySection('metrica');
+  const iconMap = { 'Famiglie seguite': 'heart-handshake', 'Follower Instagram': 'instagram', 'Professionisti nel team': 'users', 'Canali social attivi': 'share-2', 'Linee di servizio attuali': 'layers', 'Pricing pubblico sul sito': 'tag' };
+  const kpiPick = ['Famiglie seguite','Follower Instagram','Professionisti nel team','Pricing pubblico sul sito'];
+  const kpiHtml = kpiPick.map(k => {
+    const m = metriche.find(x => x.key === k);
+    if (!m) return '';
+    return `<div class="bg-white rounded-2xl border border-slate-200 p-5">
+      <div class="flex items-center gap-2 text-slate-400 mb-2">
+        <i data-lucide="${iconMap[k] || 'circle'}" class="w-4 h-4"></i>
+        <span class="text-xs font-medium">${k}</span>
+      </div>
+      <div class="text-2xl font-bold text-slate-800">${m.value1}</div>
+      <div class="text-xs text-slate-400 mt-1">${m.value2 || ''}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('kpi-cards').innerHTML = kpiHtml;
+
+  // ---- Competitor table ----
+  const competitors = bySection('competitor');
+  document.getElementById('competitor-table').innerHTML = competitors.map((c, i) => `
+    <tr class="border-b border-slate-50 align-top ${i === 0 ? 'bg-indigo-50/50' : ''}">
+      <td class="py-3 pr-4 font-medium text-slate-800 whitespace-nowrap">${c.key}</td>
+      <td class="py-3 pr-4 text-slate-600 max-w-xs">${c.value1}</td>
+      <td class="py-3 pr-4 text-slate-600 max-w-xs">${c.value2}</td>
+      <td class="py-3 pr-4 text-slate-600 max-w-xs">${c.value3}</td>
+      <td class="py-3 pr-4 text-slate-600 max-w-xs">${c.value4}</td>
+    </tr>
+  `).join('');
+
+  // ---- SEO list ----
+  const seo = bySection('seo');
+  document.getElementById('seo-list').innerHTML = seo.map(s => {
+    const ok = s.value1 === 'Presidiata';
+    return `<div class="flex items-center justify-between border border-slate-100 rounded-xl px-4 py-3">
+      <div>
+        <div class="text-sm font-medium text-slate-800">${s.key}</div>
+        <div class="text-xs text-slate-400">${s.value2}</div>
+      </div>
+      <span class="text-xs font-medium px-2.5 py-1 rounded-full ${ok ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${s.value1}</span>
+    </div>`;
+  }).join('');
+
+  // ---- SWOT ----
+  const swot = bySection('swot');
+  const fill = (quadrant, elId) => {
+    document.getElementById(elId).innerHTML = swot.filter(s => s.key === quadrant).map(s => `<li>${s.value1}</li>`).join('');
+  };
+  fill('Strengths', 'swot-strengths');
+  fill('Weaknesses', 'swot-weaknesses');
+  fill('Opportunities', 'swot-opportunities');
+  fill('Threats', 'swot-threats');
+
+  // ---- Roadmap ----
+  const roadmap = bySection('roadmap');
+  const impactColor = { Alto: 'bg-red-100 text-red-700', Medio: 'bg-amber-100 text-amber-700', Basso: 'bg-slate-100 text-slate-600' };
+  document.getElementById('roadmap-list').innerHTML = roadmap.map((r, i) => `
+    <div class="bg-white rounded-2xl border border-slate-200 p-5">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <h3 class="font-semibold text-slate-800 flex items-center gap-2"><span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center">${i+1}</span> ${r.key}</h3>
+        <div class="flex gap-2">
+          <span class="text-xs font-medium px-2.5 py-1 rounded-full ${impactColor[r.value4] || 'bg-slate-100 text-slate-600'}">Impatto: ${r.value4}</span>
+          <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700">${r.value5}</span>
+        </div>
+      </div>
+      <div class="grid sm:grid-cols-3 gap-3 text-sm">
+        <div><div class="text-xs text-slate-400 mb-1">Problema</div><p class="text-slate-600">${r.value1}</p></div>
+        <div><div class="text-xs text-slate-400 mb-1">Azione</div><p class="text-slate-600">${r.value2}</p></div>
+        <div><div class="text-xs text-slate-400 mb-1">Risultato atteso</div><p class="text-slate-600">${r.value3}</p></div>
+      </div>
+    </div>
+  `).join('');
+
+  lucide.createIcons();
+}
+
+// ---------- Tabs ----------
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+    document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+  });
+});
+
+// ---------- Auth flow ----------
+const loginView = document.getElementById('login-view');
+const dashboardView = document.getElementById('dashboard-view');
+
+async function loadDashboardData(user) {
+  document.getElementById('user-email-label').textContent = user?.email || '';
+  document.getElementById('loading-state').classList.remove('hidden');
+  document.getElementById('content').classList.add('hidden');
+
+  let csvText = null;
+  try {
+    // 1. Recupera il client associato all'utente da public.profiles
+    const { data: profile, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('client')
+      .eq('id', user.id)
+      .single();
+
+    const clientFolder = (!profileError && profile && profile.client) ? profile.client : 'dottoressaaria2026';
+
+    // 2. Scarica il CSV dallo Storage
+    const { data: fileData, error: fileError } = await supabaseClient
+      .storage
+      .from(STORAGE_BUCKET)
+      .download(`${clientFolder}/data.csv`);
+
+    if (fileError || !fileData) throw fileError || new Error('File non trovato');
+    csvText = await fileData.text();
+  } catch (e) {
+    console.warn('Impossibile scaricare data.csv da Supabase, uso i dati di fallback.', e);
+    csvText = FALLBACK_CSV;
+  }
+
+  renderAll(parseCsv(csvText));
+}
+
+function showDashboard(session) {
+  loginView.classList.add('hidden');
+  dashboardView.classList.remove('hidden');
+  loadDashboardData(session.user);
+}
+
+function showLogin() {
+  dashboardView.classList.add('hidden');
+  loginView.classList.remove('hidden');
+}
+
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-password').value;
+  const errorEl = document.getElementById('login-error');
+  errorEl.classList.add('hidden');
+
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) {
+    errorEl.textContent = 'Accesso non riuscito: ' + error.message;
+    errorEl.classList.remove('hidden');
+    return;
+  }
+  showDashboard(data.session);
+});
+
+document.getElementById('logout-btn').addEventListener('click', async () => {
+  await supabaseClient.auth.signOut();
+  showLogin();
+});
+
+// ---------- Sessione persistente al reload ----------
+(async function init() {
+  lucide.createIcons();
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session) {
+    showDashboard(session);
+  } else {
+    showLogin();
+  }
+})();
+</script>
+</body>
+</html>
